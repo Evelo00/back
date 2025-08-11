@@ -1,8 +1,24 @@
-import { DataTypes, Model } from "sequelize";
+import { DataTypes, Model, type Optional } from "sequelize";
 import { sequelize } from "../config/database.js";
-import type { UserBaseAttributes } from "./UserBase.js";
 
-class Barra extends Model<UserBaseAttributes> implements UserBaseAttributes {
+// Atributos base
+interface BarraAttributes {
+  id: string;
+  nombre: string;
+  correo: string;
+  contraseña: string;
+  rol: string;
+}
+
+// Campos opcionales al crear
+interface BarraCreationAttributes
+  extends Optional<BarraAttributes, "id" | "rol"> {}
+
+// Modelo
+class Barra
+  extends Model<BarraAttributes, BarraCreationAttributes>
+  implements BarraAttributes
+{
   public id!: string;
   public nombre!: string;
   public correo!: string;

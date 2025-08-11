@@ -1,11 +1,23 @@
-import { DataTypes, Model } from "sequelize";
+import { DataTypes, Model, type Optional } from "sequelize";
 import { sequelize } from "../config/database.js";
 
-class Service extends Model {
+export interface ServiceAttributes {
+  id: string;
+  nombre: string;
+  precio: number;
+  duracion: number;
+}
+
+export type ServiceCreationAttributes = Optional<ServiceAttributes, "id">;
+
+class Service
+  extends Model<ServiceAttributes, ServiceCreationAttributes>
+  implements ServiceAttributes
+{
   public id!: string;
   public nombre!: string;
   public precio!: number;
-  public duracion!: number; // minutos
+  public duracion!: number;
 }
 
 Service.init(

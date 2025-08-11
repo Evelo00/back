@@ -1,12 +1,14 @@
 import { sequelize } from "./src/config/database.js";
-import "./src/models/barbero.js";
-import "./src/models/client.js";
 import "./src/models/barra.js";
 import "./src/models/UserBase.js";
-import "./src/models/superAdmin.js";
 import "./src/models/service.js";
 import "./src/models/productoNevera.js";
 import "./src/models/VitrinaCounter.js";
+import "./src/models/sede.js";
+import "./src/models/user.js";
+import "./src/models/venta.js";
+import "./src/models/detalleVenta.js";
+import "./src/models/citas.js";
 
 (async () => {
   try {
