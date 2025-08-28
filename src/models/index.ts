@@ -6,7 +6,7 @@ import Venta from "./venta.js";
 import DetalleVenta from "./detalleVenta.js";
 import ProductoNevera from "./productoNevera.js";
 import Service from "./service.js";
-import VitrinaCounter from "./VitrinaCounter.js";
+import VitrinaCounter from "./vitrinaCounter.js";
 import Barra from "./barra.js";
 
 import {

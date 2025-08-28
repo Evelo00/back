@@ -3,7 +3,7 @@ import "./src/models/barra.js";
 import "./src/models/UserBase.js";
 import "./src/models/service.js";
 import "./src/models/productoNevera.js";
-import "./src/models/VitrinaCounter.js";
+import "./src/models/vitrinaCounter.js";
 import "./src/models/sede.js";
 import "./src/models/user.js";
 import "./src/models/venta.js";
