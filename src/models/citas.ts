@@ -71,8 +71,8 @@ Cita.init(
 );
 
 // Relaciones
-Cita.belongsTo(User, { as: "cliente", foreignKey: "clienteId" });
-Cita.belongsTo(User, { as: "barbero", foreignKey: "barberoId" });
-Cita.belongsTo(Service, { as: "servicio", foreignKey: "servicioId" });
+Cita.belongsTo(User, { as: "clienteCita", foreignKey: "clienteId" });
+Cita.belongsTo(User, { as: "barberoCita", foreignKey: "barberoId" });
+Cita.belongsTo(Service, { as: "servicioCita", foreignKey: "servicioId" });
 
 export default Cita;

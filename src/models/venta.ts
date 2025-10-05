@@ -34,7 +34,7 @@ Venta.init(
   }
 );
 
-Venta.belongsTo(User, { as: "cliente", foreignKey: "clienteId" });
-Venta.belongsTo(User, { as: "vendedor", foreignKey: "vendedorId" });
+Venta.belongsTo(User, { as: "clienteVenta", foreignKey: "clienteId" });
+Venta.belongsTo(User, { as: "vendedorVenta", foreignKey: "vendedorId" });
 
 export default Venta;

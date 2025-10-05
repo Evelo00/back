@@ -45,9 +45,12 @@ DetalleVenta.init(
 // Relaciones
 DetalleVenta.belongsTo(Venta, { foreignKey: "ventaId" });
 DetalleVenta.belongsTo(ProductoNevera, {
-  as: "producto",
+  as: "productoDetalle",
   foreignKey: "productoId",
 });
-DetalleVenta.belongsTo(Service, { as: "servicio", foreignKey: "servicioId" });
+DetalleVenta.belongsTo(Service, {
+  as: "servicioDetalle",
+  foreignKey: "servicioId",
+});
 
 export default DetalleVenta;

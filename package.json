@@ -4,8 +4,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "npm run build && node dist/server.js",
+    "dev:watch": "nodemon --watch src --ext ts --exec ts-node --esm src/server.ts",
+    "sync": "npm run build && node dist/syncModels.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -27,9 +30,9 @@
   "devDependencies": {
     "@types/express": "^5.0.3",
     "@types/morgan": "^1.9.10",
-    "@types/node": "^24.2.1",
+    "@types/node": "^24.6.2",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   }
 }
