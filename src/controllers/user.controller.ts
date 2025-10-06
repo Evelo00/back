@@ -1,7 +1,5 @@
-// src/controllers/user.controller.ts
-// src/controllers/user.controller.ts
 import type { Request, Response } from "express";
-import { User } from "../models/index.js";
+import { User } from "../models/index";
 
 export const getUsers = async (_req: Request, res: Response) => {
   try {

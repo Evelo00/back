@@ -1,6 +1,6 @@
 // src/controllers/vitrina.controller.ts
 import type { Request, Response } from "express";
-import VitrinaCounter from "../models/vitrinaCounter.js";
+import VitrinaCounter from "../models/vitrinaCounter";
 
 export const getVitrinas = async (req: Request, res: Response) => {
   try {

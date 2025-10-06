@@ -1,7 +1,7 @@
 // src/controllers/service.controller.ts
 // src/controllers/service.controller.ts
 import type { Request, Response } from "express";
-import Service from "../models/service.js";
+import Service from "../models/service";
 
 export const getServices = async (req: Request, res: Response) => {
   try {

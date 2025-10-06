@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import Cita from "../models/citas.js";
+import Cita from "../models/citas";
 
 /**
  * CRUD básico para Citas:
