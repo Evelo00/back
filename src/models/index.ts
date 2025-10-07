@@ -1,13 +1,13 @@
 // src/models/index.ts
 import { Sequelize } from "sequelize";
-import { User } from "./user.js";
-import { Sede } from "./sede.js";
-import Venta from "./venta.js";
-import DetalleVenta from "./detalleVenta.js";
-import ProductoNevera from "./productoNevera.js";
-import Service from "./service.js";
-import VitrinaCounter from "./vitrinaCounter.js";
-import Barra from "./barra.js";
+import { User } from "./user";
+import { Sede } from "./sede";
+import Venta from "./venta";
+import DetalleVenta from "./detalleVenta";
+import ProductoNevera from "./productoNevera";
+import Service from "./service";
+import VitrinaCounter from "./vitrinaCounter";
+import Barra from "./barra";
 
 import {
   sequelize as sequelizeConnection,
