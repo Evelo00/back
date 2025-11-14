@@ -4,6 +4,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 
 import userRoutes from "./routes/user.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 import citaRoutes from "./routes/cita.routes.js";
 import ventaRoutes from "./routes/venta.routes.js";
 import detalleVentaRoutes from "./routes/detalleVenta.routes.js";
@@ -19,7 +20,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "*", // Cambiar por la URL del front
+    origin: process.env.FRONTEND_URL, // Cambiar por la URL del front
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -36,6 +37,7 @@ app.use("/services", serviceRoutes);
 app.use("/vitrina-counter", vitrinaCounterRoutes);
 app.use("/barras", barraRoutes);
 app.use("/api", routes);
+app.use("/auth", authRoutes);
 
 // Ruta de prueba
 app.get("/", (req, res) => {

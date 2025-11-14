@@ -1,39 +1,23 @@
-import { DataTypes, Model, type Optional } from "sequelize";
+import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize";
 import { sequelize } from "../config/database.js";
 
 type RolUsuario = "superadmin" | "caja" | "barbero" | "cliente";
 
-interface UsuarioAttributes {
-  id: string;
-  email: string;
-  telefono?: string;
-  passwordHash: string;
-  nombre: string;
-  apellido: string;
-  rol: RolUsuario;
-  activo: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
-  deletedAt?: Date | null;
-}
-
-type UsuarioCreationAttributes = Optional<UsuarioAttributes, "id" | "activo">;
-
-export class User
-  extends Model<UsuarioAttributes, UsuarioCreationAttributes>
-  implements UsuarioAttributes
-{
-  public id!: string;
-  public email!: string;
-  public telefono?: string;
-  public passwordHash!: string;
-  public nombre!: string;
-  public apellido!: string;
-  public rol!: RolUsuario;
-  public activo!: boolean;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
-  public readonly deletedAt!: Date | null;
+export class User extends Model<
+  InferAttributes<User>,
+  InferCreationAttributes<User>
+> {
+  declare id: CreationOptional<string>;
+  declare email: string;
+  declare telefono: string | null;
+  declare passwordHash: string;
+  declare nombre: string;
+  declare apellido: string;
+  declare rol: RolUsuario;
+  declare activo: CreationOptional<boolean>;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
+  declare deletedAt: Date | null;
 }
 
 User.init(
@@ -48,21 +32,32 @@ User.init(
       allowNull: false,
       unique: true,
     },
-    telefono: { type: DataTypes.STRING },
-    passwordHash: { type: DataTypes.STRING, allowNull: false },
+    telefono: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    passwordHash: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
     nombre: { type: DataTypes.STRING, allowNull: false },
     apellido: { type: DataTypes.STRING, allowNull: false },
     rol: {
       type: DataTypes.ENUM("superadmin", "caja", "barbero", "cliente"),
       allowNull: false,
     },
-    activo: { type: DataTypes.BOOLEAN, defaultValue: true },
+    activo: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
+  createdAt: DataTypes.DATE,
+  updatedAt: DataTypes.DATE,
+  deletedAt: DataTypes.DATE,
   },
   {
     sequelize,
     tableName: "usuarios",
     paranoid: true,
     timestamps: true,
-    indexes: [{ fields: ["rol"] }, { unique: true, fields: ["email"] }],
   }
 );
