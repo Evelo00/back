@@ -1,8 +1,6 @@
 // models/cita.ts
-import { DataTypes, Model, type Optional } from "sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 import { sequelize } from "../config/database.js";
-import { User } from "./user.js";
-import Service from "./service.js";
 
 interface CitaAttributes {
   id: string;
@@ -11,10 +9,17 @@ interface CitaAttributes {
   servicioId: string;
   fechaHora: Date;
   estado: "pendiente" | "confirmada" | "cancelada" | "completada";
+
+  precioFinal: number;
+  duracionMinutos: number;
+  notas?: string | null;
 }
 
 interface CitaCreationAttributes
-  extends Optional<CitaAttributes, "id" | "estado"> {}
+  extends Optional<
+    CitaAttributes,
+    "id" | "estado" | "precioFinal" | "duracionMinutos" | "notas"
+  > {}
 
 class Cita
   extends Model<CitaAttributes, CitaCreationAttributes>
@@ -26,6 +31,10 @@ class Cita
   public servicioId!: string;
   public fechaHora!: Date;
   public estado!: "pendiente" | "confirmada" | "cancelada" | "completada";
+
+  public precioFinal!: number;
+  public duracionMinutos!: number;
+  public notas!: string | null;
 }
 
 Cita.init(
@@ -61,6 +70,23 @@ Cita.init(
       allowNull: false,
       defaultValue: "pendiente",
     },
+
+    precioFinal: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+
+    duracionMinutos: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 30,
+    },
+
+    notas: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
   {
     sequelize,
@@ -69,10 +95,5 @@ Cita.init(
     timestamps: true,
   }
 );
-
-// Relaciones
-Cita.belongsTo(User, { as: "clienteCita", foreignKey: "clienteId" });
-Cita.belongsTo(User, { as: "barberoCita", foreignKey: "barberoId" });
-Cita.belongsTo(Service, { as: "servicioCita", foreignKey: "servicioId" });
 
 export default Cita;

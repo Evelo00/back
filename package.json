@@ -8,7 +8,9 @@
     "dev": "npm run build && node dist/server.js",
     "dev:watch": "nodemon --watch src --ext ts --exec ts-node --esm src/server.ts",
     "sync": "npm run build && node dist/syncModels.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "sync:dev": "ts-node src/syncModels.ts",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "seed": "ts-node src/seed/seedAll.ts"
   },
   "keywords": [],
   "author": "",

@@ -1,15 +1,6 @@
 import type { Request, Response } from "express";
 import Cita from "../models/citas";
 
-/**
- * CRUD básico para Citas:
- * - createCita
- * - getCitas
- * - getCitaById
- * - updateCita
- * - deleteCita
- */
-
 export const getCitas = async (_req: Request, res: Response) => {
   try {
     const citas = await Cita.findAll();

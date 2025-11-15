@@ -8,27 +8,19 @@ import ProductoNevera from "./productoNevera";
 import Service from "./service";
 import VitrinaCounter from "./vitrinaCounter";
 import Barra from "./barra";
+import Cita from "./citas";
+import { SolicitudCaja } from "./solicitud.model";
 
 import {
   sequelize as sequelizeConnection,
   connectDB,
 } from "../config/database.js";
 
-// Inicializar modelos
-const UserInit = User;
-const SedeInit = Sede;
-const VentaInit = Venta;
-const DetalleVentaInit = DetalleVenta;
-const ProductoNeveraInit = ProductoNevera;
-const ServiceInit = Service;
-const VitrinaCounterInit = VitrinaCounter;
-const BarraInit = Barra;
-
-/* 
+/*
    RELACIONES
 */
 
-// Una sede tiene muchos usuarios con roles "barbero", "caja", "admin"
+// Una sede tiene muchos usuarios
 Sede.hasMany(User, {
   foreignKey: "sedeId",
   as: "usuarios",
@@ -38,7 +30,7 @@ User.belongsTo(Sede, {
   as: "sede",
 });
 
-// Ventas hechas por usuarios (barbero o caja)
+// Ventas hechas por barbero/caja
 User.hasMany(Venta, {
   foreignKey: "usuarioId",
   as: "ventas",
@@ -48,7 +40,7 @@ Venta.belongsTo(User, {
   as: "usuario",
 });
 
-// Ventas hechas a clientes
+// Ventas a clientes
 User.hasMany(Venta, {
   foreignKey: "clienteId",
   as: "comprasCliente",
@@ -58,7 +50,7 @@ Venta.belongsTo(User, {
   as: "cliente",
 });
 
-// Detalle de ventas
+// Detalles de venta
 Venta.hasMany(DetalleVenta, {
   foreignKey: "ventaId",
   as: "detalles",
@@ -68,7 +60,7 @@ DetalleVenta.belongsTo(Venta, {
   as: "venta",
 });
 
-// Relación productos - detalles
+// Productos - detalles
 ProductoNevera.hasMany(DetalleVenta, {
   foreignKey: "productoNeveraId",
   as: "detallesVenta",
@@ -88,6 +80,53 @@ DetalleVenta.belongsTo(Service, {
   as: "servicio",
 });
 
+/*  
+   --- RELACIONES DE CITA ---
+*/
+
+// Un cliente tiene muchas citas
+User.hasMany(Cita, {
+  foreignKey: "clienteId",
+  as: "citasCliente",
+});
+Cita.belongsTo(User, {
+  foreignKey: "clienteId",
+  as: "clienteCita",
+});
+
+// Un barbero tiene muchas citas
+User.hasMany(Cita, {
+  foreignKey: "barberoId",
+  as: "citasBarbero",
+});
+Cita.belongsTo(User, {
+  foreignKey: "barberoId",
+  as: "barberoCita",
+});
+
+// El servicio pertenece a muchas citas
+Service.hasMany(Cita, {
+  foreignKey: "servicioId",
+  as: "citasServicio",
+});
+Cita.belongsTo(Service, {
+  foreignKey: "servicioId",
+  as: "servicioCita",
+});
+
+/*  
+   --- RELACIÓN DE SOLICITUD DE CAJA ---
+*/
+
+User.hasMany(SolicitudCaja, {
+  foreignKey: "barberoId",
+  as: "solicitudesCaja",
+});
+SolicitudCaja.belongsTo(User, {
+  foreignKey: "barberoId",
+  as: "barberoSolicitud",
+});
+
 export {
   sequelizeConnection,
   User,
@@ -98,4 +137,6 @@ export {
   Service,
   VitrinaCounter,
   Barra,
+  Cita,
+  SolicitudCaja
 };

@@ -2,11 +2,23 @@ import type { Request, Response } from "express";
 import { User } from "../models/index";
 import bcrypt from "bcryptjs";
 
-export const getUsers = async (_req: Request, res: Response) => {
+export const getUsers = async (req: Request, res: Response) => {
   try {
+    // Leer rol desde query string: ?rol=barbero
+    const rolFilter = req.query.rol as string | undefined;
+
+    const whereClause: any = {};
+    if (rolFilter) {
+      whereClause.rol = rolFilter;
+      whereClause.activo = true; // solo activos
+    }
+
     const users = await User.findAll({
       attributes: { exclude: ["passwordHash"] },
+      where: whereClause,
+      order: [["nombre", "ASC"]],
     });
+
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: "Error al obtener usuarios", error });
@@ -36,9 +48,6 @@ export const createUser = async (req: Request, res: Response) => {
       });
     }
 
-    // ---------------------------
-    // 🔍 Evitar duplicado de email
-    // ---------------------------
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({
@@ -46,9 +55,6 @@ export const createUser = async (req: Request, res: Response) => {
       });
     }
 
-    // ---------------------------
-    // 🔐 Hash de contraseña
-    // ---------------------------
     const passwordHash = await bcrypt.hash(password, 10);
 
     const user = await User.create({
@@ -60,9 +66,6 @@ export const createUser = async (req: Request, res: Response) => {
       telefono: telefono ?? null,
     });
 
-    // ---------------------------
-    // 🧼 Respuesta sin passwordHash
-    // ---------------------------
     const safeUser = user.toJSON();
      const { passwordHash: _, ...userWithoutPassword } = safeUser;
 
@@ -82,9 +85,6 @@ export const updateUser = async (req: Request, res: Response) => {
     if (!user)
       return res.status(404).json({ message: "Usuario no encontrado" });
 
-    // -------------------------------------
-    // ⚠️ Evitar que password llegue en texto
-    // -------------------------------------
     if (req.body.password) {
       req.body.passwordHash = await bcrypt.hash(req.body.password, 10);
       delete req.body.password;

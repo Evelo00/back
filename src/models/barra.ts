@@ -1,7 +1,6 @@
 import { DataTypes, Model, type Optional } from "sequelize";
 import { sequelize } from "../config/database.js";
 
-// Atributos base
 interface BarraAttributes {
   id: string;
   nombre: string;
@@ -10,11 +9,9 @@ interface BarraAttributes {
   rol: string;
 }
 
-// Campos opcionales al crear
 interface BarraCreationAttributes
   extends Optional<BarraAttributes, "id" | "rol"> {}
 
-// Modelo
 class Barra
   extends Model<BarraAttributes, BarraCreationAttributes>
   implements BarraAttributes

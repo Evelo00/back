@@ -13,6 +13,7 @@ router.post("/", createCita);
 router.get("/", getCitas);
 router.get("/:id", getCitaById);
 router.put("/:id", updateCita);
+router.patch("/:id", updateCita);
 router.delete("/:id", deleteCita);
 
 export default router;

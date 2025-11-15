@@ -39,6 +39,7 @@ User.init(
     passwordHash: {
       type: DataTypes.STRING,
       allowNull: false,
+      field: "password_hash",
     },
     nombre: { type: DataTypes.STRING, allowNull: false },
     apellido: { type: DataTypes.STRING, allowNull: false },
@@ -50,9 +51,9 @@ User.init(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
-  createdAt: DataTypes.DATE,
-  updatedAt: DataTypes.DATE,
-  deletedAt: DataTypes.DATE,
+    createdAt: { type: DataTypes.DATE, field: "created_at" },
+    updatedAt: { type: DataTypes.DATE, field: "updated_at" },
+    deletedAt: { type: DataTypes.DATE, field: "deleted_at" },
   },
   {
     sequelize,
