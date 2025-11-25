@@ -1,5 +1,5 @@
 import { DataTypes, Model, type Optional } from "sequelize";
-import { sequelize } from "../config/database.js";
+import { sequelize } from "../config/database";
 
 export interface ServiceAttributes {
   id: string;

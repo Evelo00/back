@@ -5,7 +5,7 @@ import {
   getBarraById,
   updateBarra,
   deleteBarra,
-} from "../controllers/barra.controller.js";
+} from "../controllers/barra.controller";
 
 const router = Router();
 

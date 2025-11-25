@@ -3,8 +3,8 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 
-import authRoutes from "./routes/auth.routes.js";
-import apiRoutes from "./routes/index.js";
+import authRoutes from "./routes/auth.routes";
+import apiRoutes from "./routes/index";
 
 const app = express();
 

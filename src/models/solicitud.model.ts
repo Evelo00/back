@@ -5,7 +5,7 @@ import {
   InferCreationAttributes,
   CreationOptional
 } from "sequelize";
-import { sequelize } from "../config/database.js";
+import { sequelize } from "../config/database";
 
 export class SolicitudCaja extends Model<
   InferAttributes<SolicitudCaja>,

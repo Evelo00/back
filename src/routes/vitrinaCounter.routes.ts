@@ -5,7 +5,7 @@ import {
   getVitrinaById,
   updateVitrina,
   deleteVitrina,
-} from "../controllers/vitrinaCounter.controller.js";
+} from "../controllers/vitrinaCounter.controller";
 
 const router = Router();
 

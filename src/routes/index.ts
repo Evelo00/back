@@ -1,15 +1,15 @@
 import { Router } from "express";
-import userRoutes from "./user.routes.js";
-import sedeRoutes from "./sede.routes.js";
-import serviceRoutes from "./service.routes.js";
-import productoNeveraRoutes from "./productoNevera.routes.js";
-import vitrinaCounterRoutes from "./vitrinaCounter.routes.js";
-import ventaRoutes from "./venta.routes.js";
-import detalleVentaRoutes from "./detalleVenta.routes.js";
-import barraRoutes from "./barra.routes.js";
-import citaRoutes from "./cita.routes.js";
-import barberoRoutes from "./barbero.routes.js";
-import superadminRoutes from "./superAdmin.routes.js";
+import userRoutes from "./user.routes";
+import sedeRoutes from "./sede.routes";
+import serviceRoutes from "./service.routes";
+import productoNeveraRoutes from "./productoNevera.routes";
+import vitrinaCounterRoutes from "./vitrinaCounter.routes";
+import ventaRoutes from "./venta.routes";
+import detalleVentaRoutes from "./detalleVenta.routes";
+import barraRoutes from "./barra.routes";
+import citaRoutes from "./cita.routes";
+import barberoRoutes from "./barbero.routes";
+import superadminRoutes from "./superAdmin.routes";
 
 const router = Router();
 

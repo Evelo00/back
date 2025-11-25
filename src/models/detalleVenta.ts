@@ -1,8 +1,8 @@
 import { DataTypes, Model } from "sequelize";
-import { sequelize } from "../config/database.js";
-import Venta from "./venta.js";
-import ProductoNevera from "./productoNevera.js";
-import Service from "./service.js";
+import { sequelize } from "../config/database";
+import Venta from "./venta";
+import ProductoNevera from "./productoNevera";
+import Service from "./service";
 
 class DetalleVenta extends Model {
   public id!: string;

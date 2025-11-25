@@ -5,7 +5,7 @@ import {
   getDetalleVentaById,
   updateDetalleVenta,
   deleteDetalleVenta,
-} from "../controllers/detalleVenta.controller.js";
+} from "../controllers/detalleVenta.controller";
 
 const router = Router();
 

@@ -1,6 +1,6 @@
 // models/cita.ts
 import { DataTypes, Model, Optional } from "sequelize";
-import { sequelize } from "../config/database.js";
+import { sequelize } from "../config/database";
 
 interface CitaAttributes {
   id: string;

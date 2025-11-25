@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import Cita from "../models/citas.js";
-import Service from "../models/service.js";
+import Cita from "../models/citas";
+import Service from "../models/service";
 import { Op } from "sequelize";
-import { SolicitudCaja } from "../models/solicitud.model.js";
+import { SolicitudCaja } from "../models/solicitud.model";
 
 export const obtenerMisCitas = async (req: any, res: Response) => {
   try {

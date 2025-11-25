@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { authMiddleware } from "../middlewares/auth.middleware.js";
-import { requireRole } from "../middlewares/role.middleware.js";
+import { authMiddleware } from "../middlewares/auth.middleware";
+import { requireRole } from "../middlewares/role.middleware";
 import {
   obtenerMisCitas,
   obtenerGananciasSemana,
   crearSolicitudCaja,
-} from "../controllers/barbero.controller.js";
+} from "../controllers/barbero.controller";
 
 const router = Router();
 

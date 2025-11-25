@@ -1,5 +1,5 @@
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize";
-import { sequelize } from "../config/database.js";
+import { sequelize } from "../config/database";
 
 type RolUsuario = "superadmin" | "caja" | "barbero" | "cliente";
 
