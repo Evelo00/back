@@ -7,15 +7,25 @@ import authRoutes from "./routes/auth.routes";
 import apiRoutes from "./routes/index";
 
 const app = express();
+const allowedOrigins = process.env.FRONTEND_URL?.split(",") || [];
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Origen no permitido por CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
 

@@ -8,7 +8,7 @@ import { initSocket } from "./websocket/socket";
 import { connectDB, sequelize } from "./config/database";
 import { createSuperAdmin } from "./seed/create-superadmin";
 
-const APP_PORT = Number(process.env.PORT) || 80
+const APP_PORT = Number(process.env.PORT) || Number(process.env.APP_PORT);
 const HOST = "0.0.0.0";
 
 const server = createServer(app);
