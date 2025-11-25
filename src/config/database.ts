@@ -1,9 +1,9 @@
 import { Sequelize } from "sequelize";
-// import dotenv from "dotenv";
+import dotenv from "dotenv";
 
-// if (process.env.NODE_ENV !== "production") {
-//   dotenv.config();
-// }
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
 
 const dbHost = process.env.DB_HOST!;
 const dbName = process.env.DB_NAME!;

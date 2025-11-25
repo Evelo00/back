@@ -1,7 +1,7 @@
-// import dotenv from "dotenv";
-// if (process.env.NODE_ENV !== "production") {
-//   dotenv.config();
-// }
+import dotenv from "dotenv";
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
 import { createServer } from "http";
 import app from "./app";
 import { initSocket } from "./websocket/socket";
