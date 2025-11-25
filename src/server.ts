@@ -7,9 +7,9 @@ import { initSocket } from "./websocket/socket";
 import { connectDB, sequelize } from "./config/database";
 import { createSuperAdmin } from "./seed/create-superadmin";
 
-
-const APP_PORT = Number(process.env.APP_PORT) || 3000;
+const APP_PORT = Number(process.env.PORT) || 3000;
 const HOST = "0.0.0.0";
+
 const server = createServer(app);
 
 initSocket(server);
@@ -17,9 +17,8 @@ initSocket(server);
 connectDB()
   .then(() => {
     sequelize
-      .sync({ alter: true })
+      .sync({ force: false })
       .then(async () => {
-
         await createSuperAdmin();
 
         console.log("✅ Modelos sincronizados con la base de datos.");
