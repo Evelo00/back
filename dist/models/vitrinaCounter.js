@@ -1,30 +1,32 @@
-// "use strict";
-// Object.defineProperty(exports, "__esModule", { value: true });
-// const sequelize_1 = require("sequelize");
-// const database_1 = require("../config/database");
-// class VitrinaCounter extends sequelize_1.Model {
-//     id;
-//     nombre;
-//     precio;
+"use strict";
+// import { DataTypes, Model } from "sequelize";
+// import { sequelize } from "../config/database";
+// class VitrinaCounter extends Model {
+//   public id!: string;
+//   public nombre!: string;
+//   public precio!: number;
 // }
-// VitrinaCounter.init({
+// VitrinaCounter.init(
+//   {
 //     id: {
-//         type: sequelize_1.DataTypes.UUID,
-//         defaultValue: sequelize_1.DataTypes.UUIDV4,
-//         primaryKey: true,
+//       type: DataTypes.UUID,
+//       defaultValue: DataTypes.UUIDV4,
+//       primaryKey: true,
 //     },
 //     nombre: {
-//         type: sequelize_1.DataTypes.STRING,
-//         allowNull: false,
+//       type: DataTypes.STRING,
+//       allowNull: false,
 //     },
 //     precio: {
-//         type: sequelize_1.DataTypes.FLOAT,
-//         allowNull: false,
+//       type: DataTypes.FLOAT,
+//       allowNull: false,
 //     },
-// }, {
-//     sequelize: database_1.sequelize,
+//   },
+//   {
+//     sequelize,
 //     modelName: "VitrinaCounter",
 //     tableName: "productos_vitrina_counter",
 //     timestamps: false,
-// });
-// exports.default = VitrinaCounter;
+//   }
+// );
+// export default VitrinaCounter;

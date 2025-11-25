@@ -1,11 +1,16 @@
-// "use strict";
-// Object.defineProperty(exports, "__esModule", { value: true });
-// const express_1 = require("express");
-// const vitrinaCounter_controller_1 = require("../controllers/vitrinaCounter.controller");
-// const router = (0, express_1.Router)();
-// router.post("/", vitrinaCounter_controller_1.createVitrina);
-// router.get("/", vitrinaCounter_controller_1.getVitrinas);
-// router.get("/:id", vitrinaCounter_controller_1.getVitrinaById);
-// router.put("/:id", vitrinaCounter_controller_1.updateVitrina);
-// router.delete("/:id", vitrinaCounter_controller_1.deleteVitrina);
-// exports.default = router;
+"use strict";
+// import { Router } from "express";
+// import {
+//   createVitrina,
+//   getVitrinas,
+//   getVitrinaById,
+//   updateVitrina,
+//   deleteVitrina,
+// } from "../controllers/vitrinaCounter.controller";
+// const router = Router();
+// router.post("/", createVitrina);
+// router.get("/", getVitrinas);
+// router.get("/:id", getVitrinaById);
+// router.put("/:id", updateVitrina);
+// router.delete("/:id", deleteVitrina);
+// export default router;
