@@ -1,6 +1,6 @@
 // src/controllers/barra.controller.ts
 import type { Request, Response } from "express";
-import Barra from "../models/Barra";
+import Barra from "../models/barra";
 
 export const getBarras = async (req: Request, res: Response) => {
   try {

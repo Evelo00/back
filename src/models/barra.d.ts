@@ -1,5 +1,5 @@
 import { Model } from "sequelize";
-import type { UserBaseAttributes } from "./UserBase";
+import type { UserBaseAttributes } from "./userBase";
 declare class Barra extends Model<UserBaseAttributes> implements UserBaseAttributes {
     id: string;
     nombre: string;

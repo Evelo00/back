@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { User } from "../models/User";
-import Cita from "../models/Citas";
-import Service from "../models/Service";
+import { User } from "../models/user";
+import Cita from "../models/citas";
+import Service from "../models/service";
 import bcrypt from "bcryptjs";
 import { Op } from "sequelize";
 

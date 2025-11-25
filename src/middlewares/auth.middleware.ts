@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { User } from "../models/Index";
+import { User } from "../models";
 
 export const authMiddleware = async (
   req: Request & { user?: any },
