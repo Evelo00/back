@@ -1,7 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/database";
 import Venta from "./venta";
-import ProductoNevera from "./productonevera";
+import ProductoNevera from "./productoNevera";
 import Service from "./service";
 
 class DetalleVenta extends Model {

@@ -3,11 +3,11 @@ import { Sequelize } from "sequelize";
 import { User } from "./user";
 import { Sede } from "./sede";
 import Venta from "./venta";
-import DetalleVenta from "./detalleventa";
-import ProductoNevera from "./productonevera";
+// import DetalleVenta from "./detalleVenta";
+// import ProductoNevera from "./productoNevera";
 import Service from "./service";
-import VitrinaCounter from "./vitrinaCounter";
-import Barra from "./barra";
+// import VitrinaCounter from "./vitrinaCounter";
+// import Barra from "./barra";
 import Cita from "./citas";
 import { SolicitudCaja } from "./solicitud.model";
 
@@ -51,34 +51,34 @@ Venta.belongsTo(User, {
 });
 
 // Detalles de venta
-Venta.hasMany(DetalleVenta, {
-  foreignKey: "ventaId",
-  as: "detalles",
-});
-DetalleVenta.belongsTo(Venta, {
-  foreignKey: "ventaId",
-  as: "venta",
-});
+// Venta.hasMany(DetalleVenta, {
+//   foreignKey: "ventaId",
+//   as: "detalles",
+// });
+// DetalleVenta.belongsTo(Venta, {
+//   foreignKey: "ventaId",
+//   as: "venta",
+// });
 
-// Productos - detalles
-ProductoNevera.hasMany(DetalleVenta, {
-  foreignKey: "productoNeveraId",
-  as: "detallesVenta",
-});
-DetalleVenta.belongsTo(ProductoNevera, {
-  foreignKey: "productoNeveraId",
-  as: "productoNevera",
-});
+// // Productos - detalles
+// ProductoNevera.hasMany(DetalleVenta, {
+//   foreignKey: "productoNeveraId",
+//   as: "detallesVenta",
+// });
+// DetalleVenta.belongsTo(ProductoNevera, {
+//   foreignKey: "productoNeveraId",
+//   as: "productoNevera",
+// });
 
 // Servicios vendidos
-Service.hasMany(DetalleVenta, {
-  foreignKey: "servicioId",
-  as: "detallesServicio",
-});
-DetalleVenta.belongsTo(Service, {
-  foreignKey: "servicioId",
-  as: "servicio",
-});
+// Service.hasMany(DetalleVenta, {
+//   foreignKey: "servicioId",
+//   as: "detallesServicio",
+// });
+// DetalleVenta.belongsTo(Service, {
+//   foreignKey: "servicioId",
+//   as: "servicio",
+// });
 
 /*  
    --- RELACIONES DE CITA ---
@@ -132,11 +132,11 @@ export {
   User,
   Sede,
   Venta,
-  DetalleVenta,
-  ProductoNevera,
+  // DetalleVenta,
+  // ProductoNevera,
   Service,
-  VitrinaCounter,
-  Barra,
+  // VitrinaCounter,
+  // Barra,
   Cita,
   SolicitudCaja
 };
