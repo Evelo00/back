@@ -10,6 +10,7 @@ import serviceRoutes from "./service.routes";
 import citaRoutes from "./cita.routes";
 import barberoRoutes from "./barbero.routes";
 import superadminRoutes from "./superAdmin.routes";
+import seedRoutes from "./seed.routes";
 
 const router = Router();
 
@@ -25,5 +26,7 @@ router.use("/citas", citaRoutes);
 router.use("/barbero", barberoRoutes);
 
 router.use("/superadmin", superadminRoutes);
+
+router.use("/seed", seedRoutes);
 
 export default router;

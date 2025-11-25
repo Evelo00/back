@@ -12,7 +12,6 @@ const allowedOrigins = process.env.FRONTEND_URL?.split(",") || [];
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use("/seed", seedRoutes);
 
 app.use(
   cors({
