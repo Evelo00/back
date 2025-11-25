@@ -13,8 +13,14 @@ const HOST = "0.0.0.0";
 
 const server = createServer(app);
 
-initSocket(server);
 
+initSocket(server);
+console.log("ENV ->", {
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  user: process.env.DB_USER,
+  pass: process.env.DB_PASSWORD
+});
 connectDB()
   .then(() => {
     sequelize
