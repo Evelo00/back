@@ -14,7 +14,7 @@ import { SolicitudCaja } from "./Solicitud.model";
 import {
   sequelize as sequelizeConnection,
   connectDB,
-} from "../config/database.js";
+} from "../config/database";
 
 /*
    RELACIONES
