@@ -16,7 +16,7 @@ const APP_PORT = Number(process.env.PORT) || 80;
 const HOST = "0.0.0.0";
 const server = (0, http_1.createServer)(app_1.default);
 (0, socket_1.initSocket)(server);
-console.log("ENV ->", {
+console.log("cosa ->", {
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
     user: process.env.DB_USER,
