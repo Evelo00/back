@@ -5,15 +5,38 @@ import {
   getCitaById,
   updateCita,
   deleteCita,
-} from "../controllers/cita.controller.js";
+} from "../controllers/cita.controller";
+
+
+import { authMiddleware } from "../middlewares/auth.middleware";
+import { requireRole } from "../middlewares/role.middleware";
 
 const router = Router();
 
-router.post("/", createCita);
-router.get("/", getCitas);
-router.get("/:id", getCitaById);
-router.put("/:id", updateCita);
-router.patch("/:id", updateCita);
-router.delete("/:id", deleteCita);
+router.post("/", authMiddleware, createCita);
+router.get("/", authMiddleware, getCitas);
+router.get("/:id", authMiddleware, getCitaById);
+
+
+router.put(
+  "/:id",
+  authMiddleware,
+  requireRole("barbero", "superadmin"),
+  updateCita
+);
+
+router.patch(
+  "/:id",
+  authMiddleware,
+  requireRole("barbero", "superadmin"),
+  updateCita
+);
+
+router.delete(
+  "/:id",
+  authMiddleware,
+  requireRole("superadmin"),
+  deleteCita
+);
 
 export default router;
