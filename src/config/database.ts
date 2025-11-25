@@ -1,15 +1,17 @@
 import { Sequelize } from "sequelize";
-import dotenv from "dotenv";
+// import dotenv from "dotenv";
 
-if (process.env.NODE_ENV !== "production") {
-  dotenv.config();
-}
+// if (process.env.NODE_ENV !== "production") {
+//   dotenv.config();
+// }
 
 const dbHost = process.env.DB_HOST!;
 const dbName = process.env.DB_NAME!;
 const dbUser = process.env.DB_USER!;
 const dbPassword = process.env.DB_PASSWORD!;
 const dbPort = Number(process.env.DB_PORT || 5432);
+
+console.log("DB CONFIG ->", { dbHost, dbPort, dbUser, dbName });
 
 if (!dbHost) throw new Error("DB_HOST no está definido");
 if (!dbName) throw new Error("DB_NAME no está definido");
