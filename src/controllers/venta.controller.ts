@@ -1,6 +1,6 @@
 // src/controllers/venta.controller.ts
 import type { Request, Response } from "express";
-import Venta from "../models/venta";
+import Venta from "../models/Venta";
 
 export const getVentas = async (req: Request, res: Response) => {
   try {

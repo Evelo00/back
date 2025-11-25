@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import Cita from "../models/citas";
+import Cita from "../models/Citas";
 
 export const getCitas = async (_req: Request, res: Response) => {
   try {

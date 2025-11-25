@@ -1,15 +1,15 @@
 // src/models/index.ts
 import { Sequelize } from "sequelize";
-import { User } from "./user";
-import { Sede } from "./sede";
-import Venta from "./venta";
-import DetalleVenta from "./detalleVenta";
-import ProductoNevera from "./productoNevera";
-import Service from "./service";
-import VitrinaCounter from "./vitrinaCounter";
-import Barra from "./barra";
-import Cita from "./citas";
-import { SolicitudCaja } from "./solicitud.model";
+import { User } from "./User";
+import { Sede } from "./Sede";
+import Venta from "./Venta";
+import DetalleVenta from "./DetalleVenta";
+import ProductoNevera from "./ProductoNevera";
+import Service from "./Service";
+import VitrinaCounter from "./VitrinaCounter";
+import Barra from "./Barra";
+import Cita from "./Citas";
+import { SolicitudCaja } from "./Solicitud.model";
 
 import {
   sequelize as sequelizeConnection,

@@ -1,7 +1,7 @@
 // src/controllers/productoNevera.controller.ts
 // src/controllers/productoNevera.controller.ts
 import type { Request, Response } from "express";
-import ProductoNevera from "../models/productoNevera";
+import ProductoNevera from "../models/ProductoNevera";
 
 export const getProductosNevera = async (req: Request, res: Response) => {
   try {

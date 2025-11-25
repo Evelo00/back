@@ -1,4 +1,4 @@
-import Service from "../models/service";
+import Service from "../models/Service";
 
 export async function seedServices() {
   const services = [
