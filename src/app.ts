@@ -5,12 +5,14 @@ import morgan from "morgan";
 
 import authRoutes from "./routes/auth.routes";
 import apiRoutes from "./routes/index";
+import seedRoutes from "./routes/seed.routes";
 
 const app = express();
 const allowedOrigins = process.env.FRONTEND_URL?.split(",") || [];
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/seed", seedRoutes);
 
 app.use(
   cors({
