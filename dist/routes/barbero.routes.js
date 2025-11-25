@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const role_middleware_1 = require("../middlewares/role.middleware");
+const barbero_controller_1 = require("../controllers/barbero.controller");
+const router = (0, express_1.Router)();
+router.get("/citas", auth_middleware_1.authMiddleware, (0, role_middleware_1.requireRole)("barbero"), barbero_controller_1.obtenerMisCitas);
+router.get("/ganancias", auth_middleware_1.authMiddleware, (0, role_middleware_1.requireRole)("barbero"), barbero_controller_1.obtenerGananciasSemana);
+router.post("/solicitudes", auth_middleware_1.authMiddleware, (0, role_middleware_1.requireRole)("barbero"), barbero_controller_1.crearSolicitudCaja);
+exports.default = router;

@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const barra_controller_1 = require("../controllers/barra.controller");
+const router = (0, express_1.Router)();
+router.post("/", barra_controller_1.createBarra);
+router.get("/", barra_controller_1.getBarras);
+router.get("/:id", barra_controller_1.getBarraById);
+router.put("/:id", barra_controller_1.updateBarra);
+router.delete("/:id", barra_controller_1.deleteBarra);
+exports.default = router;

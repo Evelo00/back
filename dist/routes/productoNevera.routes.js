@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const productoNevera_controller_1 = require("../controllers/productoNevera.controller");
+const router = (0, express_1.Router)();
+router.post("/", productoNevera_controller_1.createProductoNevera);
+router.get("/", productoNevera_controller_1.getProductosNevera);
+router.get("/:id", productoNevera_controller_1.getProductoNeveraById);
+router.put("/:id", productoNevera_controller_1.updateProductoNevera);
+router.delete("/:id", productoNevera_controller_1.deleteProductoNevera);
+exports.default = router;
