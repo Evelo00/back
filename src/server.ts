@@ -1,13 +1,14 @@
 import dotenv from "dotenv";
-dotenv.config();
-
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
 import { createServer } from "http";
 import app from "./app";
 import { initSocket } from "./websocket/socket";
 import { connectDB, sequelize } from "./config/database";
 import { createSuperAdmin } from "./seed/create-superadmin";
 
-const APP_PORT = Number(process.env.PORT) || 3000;
+const APP_PORT = Number(process.env.PORT) || 80
 const HOST = "0.0.0.0";
 
 const server = createServer(app);

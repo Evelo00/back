@@ -1,19 +1,23 @@
 import { Sequelize } from "sequelize";
 import dotenv from "dotenv";
 
-dotenv.config();
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
 
-const dbHost: string = process.env.DB_HOST || "";
-const dbName: string = process.env.DB_NAME || "";
-const dbUser: string = process.env.DB_USER || "";
-const dbPassword: string = process.env.DB_PASSWORD || "";
+const dbHost = process.env.DB_HOST!;
+const dbName = process.env.DB_NAME!;
+const dbUser = process.env.DB_USER!;
+const dbPassword = process.env.DB_PASSWORD!;
+const dbPort = Number(process.env.DB_PORT || 5432);
 
-if (!dbHost) throw new Error("DB_HOST environment variable is not set");
-if (!dbName) throw new Error("DB_NAME environment variable is not set");
-if (!dbUser) throw new Error("DB_USER environment variable is not set");
+if (!dbHost) throw new Error("DB_HOST no está definido");
+if (!dbName) throw new Error("DB_NAME no está definido");
+if (!dbUser) throw new Error("DB_USER no está definido");
 
 const sequelize = new Sequelize(dbName, dbUser, dbPassword, {
   host: dbHost,
+  port: dbPort,
   dialect: "postgres",
   logging: false,
   define: {
@@ -21,18 +25,22 @@ const sequelize = new Sequelize(dbName, dbUser, dbPassword, {
     timestamps: true,
     paranoid: true,
   },
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false,
+    },
+  },
 });
 
-const connectDB = async (): Promise<void> => {
+export const connectDB = async (): Promise<void> => {
   try {
     await sequelize.authenticate();
-    console.log(
-      "✅ Conexión a la base de datos PostgreSQL establecida correctamente."
-    );
+    console.log("✅ Conexión a PostgreSQL establecida correctamente.");
   } catch (error) {
     console.error("❌ No se pudo conectar a la base de datos:", error);
     process.exit(1);
   }
 };
 
-export { connectDB, sequelize };
+export { sequelize };
