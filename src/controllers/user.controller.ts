@@ -167,8 +167,9 @@ export const getPublicBarbers = async (req: Request, res: Response) => {
 
       // Si avatar ya incluye 'http', usarlo tal cual, si no, construir la URL
       if (avatarPath && !avatarPath.startsWith('http')) {
-        avatarPath = `${backendURL}/public/${avatarPath}`;
+        avatarPath = `${backendURL.replace(/\/$/, '')}/public/${avatarPath.replace(/^\/+/, '')}`;
       }
+
 
       return {
         id: barber.id,
