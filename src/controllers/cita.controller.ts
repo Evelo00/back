@@ -63,6 +63,8 @@ export const getAvailability = async (req: Request, res: Response) => {
 
 
     const existingAppointments = await Cita.findAll({
+      // FIX: Excluimos la columna "fechaFin" que no existe en la DB para evitar el error 500
+      attributes: ['id', 'barberoId', 'fechaHora', 'duracionMinutos', 'estado'],
       where: {
         barberoId: { [Op.in]: targetBarberIds },
         estado: { [Op.in]: ['pendiente', 'confirmada'] },
@@ -151,13 +153,13 @@ export const createCita = async (req: Request, res: Response) => {
   try {
     console.log("📥 Body recibido:", req.body);
 
+    // FIX: Se elimina 'fechaFin' de la destructuración ya que la columna no existe en la DB.
     const {
       clienteId,
       barberoId,
       servicioId,
       fechaHora,
       precioFinal,
-      fechaFin,
       duracionMinutos,
       nombreCliente,
       emailCliente,
@@ -170,7 +172,7 @@ export const createCita = async (req: Request, res: Response) => {
       barberoId,
       servicioId,
       fechaHora,
-      fechaFin,
+      // fechaFin: fechaFin, // REMOVIDO
       estado: "confirmada",
       precioFinal: precioFinal ?? 0,
       duracionMinutos: duracionMinutos ?? 30,

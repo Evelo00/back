@@ -52,6 +52,8 @@ const getAvailability = async (req, res) => {
         console.log(`DB Query Range: ${startOfDayDate.toISOString()} to ${endOfDayDate.toISOString()}`);
         console.log(`Target Barber IDs: ${targetBarberIds.join(', ')}`);
         const existingAppointments = await citas_1.default.findAll({
+            // FIX: Excluimos la columna "fechaFin" que no existe en la DB para evitar el error 500
+            attributes: ['id', 'barberoId', 'fechaHora', 'duracionMinutos', 'estado'],
             where: {
                 barberoId: { [sequelize_1.Op.in]: targetBarberIds },
                 estado: { [sequelize_1.Op.in]: ['pendiente', 'confirmada'] },
@@ -130,13 +132,14 @@ exports.getCitaById = getCitaById;
 const createCita = async (req, res) => {
     try {
         console.log("📥 Body recibido:", req.body);
-        const { clienteId, barberoId, servicioId, fechaHora, precioFinal, fechaFin, duracionMinutos, nombreCliente, emailCliente, whatsappCliente, notas } = req.body;
+        // FIX: Se elimina 'fechaFin' de la destructuración ya que la columna no existe en la DB.
+        const { clienteId, barberoId, servicioId, fechaHora, precioFinal, duracionMinutos, nombreCliente, emailCliente, whatsappCliente, notas } = req.body;
         const nueva = await citas_1.default.create({
             clienteId: clienteId || null,
             barberoId,
             servicioId,
             fechaHora,
-            fechaFin,
+            // fechaFin: fechaFin, // REMOVIDO
             estado: "confirmada",
             precioFinal: precioFinal ?? 0,
             duracionMinutos: duracionMinutos ?? 30,
