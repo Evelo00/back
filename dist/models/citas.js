@@ -43,15 +43,11 @@ Cita.init({
         allowNull: false,
         field: "fecha_hora",
     },
-    // **FIX CLAVE:** Se define como VIRTUAL para resolver el error de TypeScript
+    // 🔥 CAMBIO IMPORTANTE: fechaFin ahora es un campo real, no virtual
     fechaFin: {
-        type: sequelize_1.DataTypes.VIRTUAL,
-        // Opcionalmente, puedes añadir un getter si necesitas que esté disponible
-        // get() {
-        //     const fecha = this.getDataValue('fechaHora');
-        //     const duracion = this.getDataValue('duracionMinutos');
-        //     return fecha ? new Date(fecha.getTime() + duracion * 60000) : undefined;
-        // }
+        type: sequelize_1.DataTypes.DATE,
+        allowNull: true,
+        field: "fecha_fin",
     },
     estado: {
         type: sequelize_1.DataTypes.ENUM("pendiente", "confirmada", "cancelada", "completada"),

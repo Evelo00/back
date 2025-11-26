@@ -7,7 +7,7 @@ interface CitaAttributes {
   barberoId: string;
   servicioId: string;
   fechaHora: Date;
-  fechaFin: Date; // Usado solo a nivel de aplicación para lógica de disponibilidad
+  fechaFin?: Date | null;
   estado: "pendiente" | "confirmada" | "cancelada" | "completada";
 
   precioFinal: number;
@@ -42,7 +42,7 @@ class Cita
   public servicioId!: string;
 
   public fechaHora!: Date;
-  public fechaFin!: Date;
+  public fechaFin?: Date | null;
 
   public estado!: "pendiente" | "confirmada" | "cancelada" | "completada";
 
@@ -83,15 +83,12 @@ Cita.init(
       allowNull: false,
       field: "fecha_hora",
     },
-    // **FIX CLAVE:** Se define como VIRTUAL para resolver el error de TypeScript
+
+    // 🔥 CAMBIO IMPORTANTE: fechaFin ahora es un campo real, no virtual
     fechaFin: {
-      type: DataTypes.VIRTUAL,
-      // Opcionalmente, puedes añadir un getter si necesitas que esté disponible
-      // get() {
-      //     const fecha = this.getDataValue('fechaHora');
-      //     const duracion = this.getDataValue('duracionMinutos');
-      //     return fecha ? new Date(fecha.getTime() + duracion * 60000) : undefined;
-      // }
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "fecha_fin",
     },
 
     estado: {

@@ -32,7 +32,7 @@ export const getAvailability = async (req: Request, res: Response) => {
     }
 
     const SHOP_OPEN = '09:00';
-    const SHOP_CLOSE = '19:00';
+    const SHOP_CLOSE = '21:00';
     const durationMinutes = parseInt(serviceDuration as string, 10);
 
     // Utilizamos new Date() para parsear la fecha (ej: '2025-11-27')
@@ -151,16 +151,11 @@ export const getCitaById = async (req: Request, res: Response) => {
 
 export const createCita = async (req: Request, res: Response) => {
   try {
-    console.log("📥 Body recibido:", req.body);
-
-    // FIX: Se incluye 'fechaFin' en la destructuración para la validación, 
-    // pero se excluye de la inserción porque la columna 'fecha_fin' no existe en la DB.
     const {
       clienteId,
       barberoId,
       servicioId,
       fechaHora,
-      fechaFin, // Se destruye, pero no se usa en Cita.create()
       precioFinal,
       duracionMinutos,
       nombreCliente,
@@ -169,22 +164,28 @@ export const createCita = async (req: Request, res: Response) => {
       notas
     } = req.body;
 
-    // VALIDACIÓN: Aseguramos que los campos obligatorios existan.
-    // Si la DB no tiene 'fechaFin', la validación aquí es redundante para el back-end, 
-    // pero la mantenemos si el front-end la requiere para calcular la duración.
     if (!barberoId || !servicioId || !fechaHora) {
-      return res.status(400).json({ message: "Faltan campos obligatorios. 'barberoId', 'servicioId', y 'fechaHora' son requeridos para crear la cita." });
+      return res.status(400).json({
+        message: "Faltan campos obligatorios: barberoId, servicioId, fechaHora"
+      });
     }
 
+    const startDate = new Date(fechaHora);
+    const duration = duracionMinutos ?? 30;
+
+    // 🔥 CALCULAR fechaFin
+    const fechaFin = addMinutes(startDate, duration);
+
+    // 🔥 AHORA SI GUARDAMOS fechaFin
     const nueva = await Cita.create({
       clienteId: clienteId || null,
       barberoId,
       servicioId,
-      fechaHora,
-      // **CLAVE FIX:** Se excluye 'fechaFin' de la inserción para evitar el error 'column "fecha_fin" does not exist'
+      fechaHora: startDate,
+      fechaFin,
       estado: "confirmada",
       precioFinal: precioFinal ?? 0,
-      duracionMinutos: duracionMinutos ?? 30,
+      duracionMinutos: duration,
       nombreCliente,
       emailCliente,
       whatsappCliente,
@@ -194,8 +195,8 @@ export const createCita = async (req: Request, res: Response) => {
     return res.status(201).json(nueva);
 
   } catch (error: any) {
-    console.error("❌ ERROR createCita:", error);     // 👀 LOG 2
-    // Se mejoró la respuesta del error 400 para incluir el mensaje de error de Sequelize si existe.
+    console.error("❌ ERROR createCita:", error);
+
     const sequelizeErrors = error.errors?.map((e: any) => ({
       message: e.message,
       path: e.path,
@@ -204,11 +205,12 @@ export const createCita = async (req: Request, res: Response) => {
 
     return res.status(400).json({
       error: "Error al crear cita",
-      details: error.message, // Enviamos un mensaje más claro al cliente
+      details: error.message,
       sequelizeErrors: sequelizeErrors || undefined
     });
   }
 };
+
 
 export const updateCita = async (req: Request, res: Response) => {
   try {
