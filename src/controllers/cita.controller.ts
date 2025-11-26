@@ -38,6 +38,9 @@ export const getAvailability = async (req: Request, res: Response) => {
     // Utilizamos new Date() para parsear la fecha (ej: '2025-11-27')
     const targetDate = new Date(date as string);
 
+    // 🔍 LOGGING DE ENTRADA
+    console.log(`🔍 getAvailability Input: Date=${date}, Duration=${durationMinutes}, BarberId=${barberId}`);
+
     let targetBarberIds: string[] = [];
     if (barberId && barberId !== 'any') {
       targetBarberIds = [barberId as string];
@@ -53,6 +56,11 @@ export const getAvailability = async (req: Request, res: Response) => {
 
     const startOfDayDate = startOfDay(targetDate);
     const endOfDayDate = addMinutes(startOfDayDate, 24 * 60);
+
+    // 🔍 LOGGING DE RANGO DE CONSULTA
+    console.log(`DB Query Range: ${startOfDayDate.toISOString()} to ${endOfDayDate.toISOString()}`);
+    console.log(`Target Barber IDs: ${targetBarberIds.join(', ')}`);
+
 
     const existingAppointments = await Cita.findAll({
       where: {
@@ -86,10 +94,10 @@ export const getAvailability = async (req: Request, res: Response) => {
         const barberAppointments = appointmentsByBarber[barberId];
 
         const isBarberFree = !barberAppointments.some(cita => {
-          // 🔑 CORRECCIÓN CLAVE: Aseguramos que fechaHora sea un objeto Date
+          // Aseguramos que fechaHora sea un objeto Date
           const appointmentStart = new Date(cita.fechaHora as Date | string);
 
-          // 🔑 CORRECCIÓN CLAVE: Usamos 30 como valor por defecto si duracionMinutos es null/undefined
+          // Usamos 30 como valor por defecto si duracionMinutos es null/undefined
           const duration = cita.duracionMinutos || 30;
 
           const appointmentEnd = addMinutes(appointmentStart, duration);
@@ -114,7 +122,8 @@ export const getAvailability = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error("❌ ERROR getAvailability:", error);
-    // Devolvemos el error 500 para informar al front-end
+    // 🔑 Ahora capturamos y logueamos el objeto de error completo para obtener detalles de Sequelize/DB
+    console.error("❌ Full Error Object:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
     return res.status(500).json({ message: "Error al calcular la disponibilidad", details: (error as Error).message });
   }
 };
