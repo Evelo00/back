@@ -32,6 +32,8 @@ const getAvailability = async (req, res) => {
         const durationMinutes = parseInt(serviceDuration, 10);
         // Utilizamos new Date() para parsear la fecha (ej: '2025-11-27')
         const targetDate = new Date(date);
+        // 🔍 LOGGING DE ENTRADA
+        console.log(`🔍 getAvailability Input: Date=${date}, Duration=${durationMinutes}, BarberId=${barberId}`);
         let targetBarberIds = [];
         if (barberId && barberId !== 'any') {
             targetBarberIds = [barberId];
@@ -46,6 +48,9 @@ const getAvailability = async (req, res) => {
         }
         const startOfDayDate = (0, date_fns_1.startOfDay)(targetDate);
         const endOfDayDate = (0, date_fns_1.addMinutes)(startOfDayDate, 24 * 60);
+        // 🔍 LOGGING DE RANGO DE CONSULTA
+        console.log(`DB Query Range: ${startOfDayDate.toISOString()} to ${endOfDayDate.toISOString()}`);
+        console.log(`Target Barber IDs: ${targetBarberIds.join(', ')}`);
         const existingAppointments = await citas_1.default.findAll({
             where: {
                 barberoId: { [sequelize_1.Op.in]: targetBarberIds },
@@ -72,9 +77,9 @@ const getAvailability = async (req, res) => {
             for (const barberId of targetBarberIds) {
                 const barberAppointments = appointmentsByBarber[barberId];
                 const isBarberFree = !barberAppointments.some(cita => {
-                    // 🔑 CORRECCIÓN CLAVE: Aseguramos que fechaHora sea un objeto Date
+                    // Aseguramos que fechaHora sea un objeto Date
                     const appointmentStart = new Date(cita.fechaHora);
-                    // 🔑 CORRECCIÓN CLAVE: Usamos 30 como valor por defecto si duracionMinutos es null/undefined
+                    // Usamos 30 como valor por defecto si duracionMinutos es null/undefined
                     const duration = cita.duracionMinutos || 30;
                     const appointmentEnd = (0, date_fns_1.addMinutes)(appointmentStart, duration);
                     // Conflicto: slot nuevo comienza antes de que termine la cita existente
@@ -94,7 +99,8 @@ const getAvailability = async (req, res) => {
     }
     catch (error) {
         console.error("❌ ERROR getAvailability:", error);
-        // Devolvemos el error 500 para informar al front-end
+        // 🔑 Ahora capturamos y logueamos el objeto de error completo para obtener detalles de Sequelize/DB
+        console.error("❌ Full Error Object:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
         return res.status(500).json({ message: "Error al calcular la disponibilidad", details: error.message });
     }
 };
