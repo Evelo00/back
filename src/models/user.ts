@@ -18,6 +18,7 @@ export class User extends Model<
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
   declare deletedAt: Date | null;
+  declare avatar: string | null;
 }
 
 User.init(
@@ -50,6 +51,10 @@ User.init(
     activo: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
+    },
+    avatar: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     createdAt: { type: DataTypes.DATE, field: "created_at" },
     updatedAt: { type: DataTypes.DATE, field: "updated_at" },

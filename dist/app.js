@@ -7,12 +7,14 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
+const path_1 = __importDefault(require("path"));
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const index_1 = __importDefault(require("./routes/index"));
 const app = (0, express_1.default)();
 const allowedOrigins = process.env.FRONTEND_URL?.split(",") || [];
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
+app.use("/public", express_1.default.static(path_1.default.join(__dirname, "../public")));
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
         if (!origin)

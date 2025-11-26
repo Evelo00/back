@@ -116,22 +116,23 @@ export const deleteUser = async (req: Request, res: Response) => {
 
 export const getPublicBarbers = async (req: Request, res: Response) => {
   try {
-    // Filtrar solo barberos activos
-    const whereClause = { rol: 'barbero', activo: true };
+    const backendURL = process.env.BACKEND_URL || "http://localhost:3000";
 
     const barbers = await User.findAll({
-      attributes: ['id', 'nombre', 'apellido'],
-      where: whereClause,
-      // order: [['nombre', 'ASC']],
+      attributes: ['id', 'nombre', 'apellido', 'avatar'],
+      where: { rol: 'barbero', activo: true },
     });
 
     if (!barbers || barbers.length === 0) {
-      return res.status(200).json([]); // Devuelve array vacío si no hay barberos
+      return res.status(200).json([]);
     }
 
     const mappedBarbers = barbers.map(barber => ({
       id: barber.id,
       nombre: `${barber.nombre} ${barber.apellido}`.trim(),
+      avatar: barber.avatar 
+        ? `${backendURL}/public/${barber.avatar}`
+        : null
     }));
 
     res.status(200).json(mappedBarbers);

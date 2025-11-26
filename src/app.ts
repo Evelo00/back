@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import path from "path";
 
 import authRoutes from "./routes/auth.routes";
 import apiRoutes from "./routes/index";
@@ -12,6 +13,7 @@ const allowedOrigins = process.env.FRONTEND_URL?.split(",") || [];
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/public", express.static(path.join(__dirname, "../public")));
 
 app.use(
   cors({

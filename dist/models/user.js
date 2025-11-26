@@ -36,6 +36,10 @@ User.init({
         type: sequelize_1.DataTypes.BOOLEAN,
         defaultValue: true,
     },
+    avatar: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: true,
+    },
     createdAt: { type: sequelize_1.DataTypes.DATE, field: "created_at" },
     updatedAt: { type: sequelize_1.DataTypes.DATE, field: "updated_at" },
     deletedAt: { type: sequelize_1.DataTypes.DATE, field: "deleted_at" },
