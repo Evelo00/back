@@ -153,12 +153,14 @@ export const createCita = async (req: Request, res: Response) => {
   try {
     console.log("📥 Body recibido:", req.body);
 
-    // FIX: Se elimina 'fechaFin' de la destructuración ya que la columna no existe en la DB.
+    // FIX: Se incluye 'fechaFin' en la destructuración y en la creación 
+    // porque el modelo de Sequelize tiene la columna con NOT NULL.
     const {
       clienteId,
       barberoId,
       servicioId,
       fechaHora,
+      fechaFin, // <--- REINCORPORADO
       precioFinal,
       duracionMinutos,
       nombreCliente,
@@ -167,12 +169,18 @@ export const createCita = async (req: Request, res: Response) => {
       notas
     } = req.body;
 
+    // VALIDACIÓN: Aseguramos que los campos obligatorios para la creación existan.
+    // Incluímos 'fechaFin' en la validación ya que es obligatoria.
+    if (!barberoId || !servicioId || !fechaHora || !fechaFin) {
+      return res.status(400).json({ message: "Faltan campos obligatorios. 'barberoId', 'servicioId', 'fechaHora', y 'fechaFin' son requeridos para crear la cita." });
+    }
+
     const nueva = await Cita.create({
       clienteId: clienteId || null,
       barberoId,
       servicioId,
       fechaHora,
-      // fechaFin: fechaFin, // REMOVIDO
+      fechaFin: fechaFin, // <--- REINCORPORADO
       estado: "confirmada",
       precioFinal: precioFinal ?? 0,
       duracionMinutos: duracionMinutos ?? 30,
@@ -186,11 +194,17 @@ export const createCita = async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error("❌ ERROR createCita:", error);     // 👀 LOG 2
+    // Se mejoró la respuesta del error 400 para incluir el mensaje de error de Sequelize si existe.
+    const sequelizeErrors = error.errors?.map((e: any) => ({
+      message: e.message,
+      path: e.path,
+      value: e.value
+    }));
+
     return res.status(400).json({
       error: "Error al crear cita",
-      details: error,
-      sequelizeMessage: error.message,
-      sequelizeErrors: error.errors
+      details: error.message, // Enviamos un mensaje más claro al cliente
+      sequelizeErrors: sequelizeErrors || undefined
     });
   }
 };
