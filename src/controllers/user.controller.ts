@@ -122,7 +122,7 @@ export const getPublicBarbers = async (req: Request, res: Response) => {
     const barbers = await User.findAll({
       attributes: ['id', 'nombre', 'apellido'],
       where: whereClause,
-      order: [['nombre', 'ASC']],
+      // order: [['nombre', 'ASC']],
     });
 
     if (!barbers || barbers.length === 0) {

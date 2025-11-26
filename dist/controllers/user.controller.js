@@ -115,7 +115,7 @@ const getPublicBarbers = async (req, res) => {
         const barbers = await models_1.User.findAll({
             attributes: ['id', 'nombre', 'apellido'],
             where: whereClause,
-            order: [['nombre', 'ASC']],
+            // order: [['nombre', 'ASC']],
         });
         if (!barbers || barbers.length === 0) {
             return res.status(200).json([]); // Devuelve array vacío si no hay barberos
