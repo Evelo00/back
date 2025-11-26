@@ -5,12 +5,14 @@ import {
   getUserById,
   updateUser,
   deleteUser,
+  getPublicBarbers,
 } from "../controllers/user.controller";
 
 import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
 
+router.get("/public/barbers", getPublicBarbers);
 router.post("/", createUser);
 
 router.get("/", authMiddleware, getUsers);

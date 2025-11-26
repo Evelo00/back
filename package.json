@@ -10,30 +10,30 @@
     "sync": "npm run build && node dist/syncModels.js",
     "sync:dev": "ts-node src/syncModels.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "seed": "ts-node src/seed/seedAll.ts"
+    "seed": "ts-node src/seed/seed.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "typescript": "^5.9.3",
-    "ts-node": "^10.9.2",
-    "@types/node": "^24.6.2",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
-    "nodemon": "^3.1.10",
+    "@types/node": "^24.6.2",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
+    "nodemon": "^3.1.10",
     "pg": "^8.16.3",
     "sequelize": "^6.37.7",
-    "socket.io": "^4.8.1"
-  },
-  "devDependencies": {}
+    "socket.io": "^4.8.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
 }

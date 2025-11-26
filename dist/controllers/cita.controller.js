@@ -3,8 +3,93 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteCita = exports.updateCita = exports.createCita = exports.getCitaById = exports.getCitas = void 0;
+exports.deleteCita = exports.updateCita = exports.createCita = exports.getCitaById = exports.getCitas = exports.getAvailability = void 0;
 const citas_1 = __importDefault(require("../models/citas"));
+const sequelize_1 = require("sequelize");
+const models_1 = require("../models");
+const date_fns_1 = require("date-fns");
+const generateTimeSlots = (start, end, duration, interval = 20) => {
+    const slots = [];
+    let current = (0, date_fns_1.parseISO)(`2000-01-01T${start}:00`);
+    const endTime = (0, date_fns_1.parseISO)(`2000-01-01T${end}:00`);
+    while (current < endTime) {
+        const potentialEnd = (0, date_fns_1.addMinutes)(current, duration);
+        if (potentialEnd <= endTime) {
+            slots.push((0, date_fns_1.format)(current, 'HH:mm'));
+        }
+        current = (0, date_fns_1.addMinutes)(current, interval);
+    }
+    return slots;
+};
+const getAvailability = async (req, res) => {
+    try {
+        const { date, serviceDuration, barberId } = req.query;
+        if (!date || !serviceDuration) {
+            return res.status(400).json({ message: "Faltan parámetros requeridos (date, serviceDuration)" });
+        }
+        const SHOP_OPEN = '09:00';
+        const SHOP_CLOSE = '19:00';
+        const durationMinutes = parseInt(serviceDuration, 10);
+        const targetDate = new Date(date);
+        let targetBarberIds = [];
+        if (barberId && barberId !== 'any') {
+            targetBarberIds = [barberId];
+        }
+        else {
+            const allBarbers = await models_1.User.findAll({ where: { rol: 'barbero', activo: true } });
+            targetBarberIds = allBarbers.map(b => b.id);
+        }
+        if (targetBarberIds.length === 0) {
+            return res.json({ availableSlots: [] });
+        }
+        const startOfDayDate = (0, date_fns_1.startOfDay)(targetDate);
+        const endOfDayDate = (0, date_fns_1.addMinutes)(startOfDayDate, 24 * 60);
+        const existingAppointments = await citas_1.default.findAll({
+            where: {
+                barberoId: { [sequelize_1.Op.in]: targetBarberIds },
+                estado: { [sequelize_1.Op.in]: ['pendiente', 'confirmada'] },
+                fechaHora: {
+                    [sequelize_1.Op.between]: [startOfDayDate, endOfDayDate]
+                }
+            },
+            order: [['fechaHora', 'ASC']]
+        });
+        const allPossibleSlots = generateTimeSlots(SHOP_OPEN, SHOP_CLOSE, durationMinutes);
+        const appointmentsByBarber = {};
+        targetBarberIds.forEach(id => appointmentsByBarber[id] = []);
+        existingAppointments.forEach(cita => {
+            if (cita.barberoId)
+                appointmentsByBarber[cita.barberoId]?.push(cita);
+        });
+        const freeSlots = [];
+        for (const slotTime of allPossibleSlots) {
+            const slotStart = (0, date_fns_1.parseISO)(`${(0, date_fns_1.format)(targetDate, 'yyyy-MM-dd')}T${slotTime}:00`);
+            const slotEnd = (0, date_fns_1.addMinutes)(slotStart, durationMinutes);
+            let isAvailable = false;
+            for (const barberId of targetBarberIds) {
+                const barberAppointments = appointmentsByBarber[barberId];
+                const isBarberFree = !barberAppointments.some(cita => {
+                    const appointmentStart = cita.fechaHora;
+                    const appointmentEnd = (0, date_fns_1.addMinutes)(appointmentStart, cita.duracionMinutos);
+                    return slotStart < appointmentEnd && slotEnd > appointmentStart;
+                });
+                if (isBarberFree) {
+                    isAvailable = true;
+                    break;
+                }
+            }
+            if (isAvailable) {
+                freeSlots.push(slotTime);
+            }
+        }
+        return res.json({ availableSlots: freeSlots });
+    }
+    catch (error) {
+        console.error("❌ ERROR getAvailability:", error);
+        return res.status(500).json({ message: "Error al calcular la disponibilidad" });
+    }
+};
+exports.getAvailability = getAvailability;
 const getCitas = async (_req, res) => {
     try {
         const citas = await citas_1.default.findAll();
@@ -29,20 +114,32 @@ const getCitaById = async (req, res) => {
 exports.getCitaById = getCitaById;
 const createCita = async (req, res) => {
     try {
-        const { clienteId, barberoId, servicioId, fechaHora } = req.body;
-        if (!clienteId || !barberoId || !servicioId || !fechaHora) {
-            return res.status(400).json({ error: "Faltan campos requeridos" });
-        }
+        console.log("📥 Body recibido:", req.body);
+        const { clienteId, barberoId, servicioId, fechaHora, precioFinal, fechaFin, duracionMinutos, nombreCliente, emailCliente, whatsappCliente, notas } = req.body;
         const nueva = await citas_1.default.create({
-            clienteId,
+            clienteId: clienteId || null,
             barberoId,
             servicioId,
             fechaHora,
+            fechaFin,
+            estado: "confirmada",
+            precioFinal: precioFinal ?? 0,
+            duracionMinutos: duracionMinutos ?? 30,
+            nombreCliente,
+            emailCliente,
+            whatsappCliente,
+            notas
         });
-        res.status(201).json(nueva);
+        return res.status(201).json(nueva);
     }
     catch (error) {
-        res.status(400).json({ error: "Error al crear cita", details: error });
+        console.error("❌ ERROR createCita:", error); // 👀 LOG 2
+        return res.status(400).json({
+            error: "Error al crear cita",
+            details: error,
+            sequelizeMessage: error.message,
+            sequelizeErrors: error.errors
+        });
     }
 };
 exports.createCita = createCita;

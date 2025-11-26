@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteUser = exports.updateUser = exports.createUser = exports.getUserById = exports.getUsers = void 0;
+exports.getPublicBarbers = exports.deleteUser = exports.updateUser = exports.createUser = exports.getUserById = exports.getUsers = void 0;
 const models_1 = require("../models");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const getUsers = async (req, res) => {
@@ -108,3 +108,27 @@ const deleteUser = async (req, res) => {
     }
 };
 exports.deleteUser = deleteUser;
+const getPublicBarbers = async (req, res) => {
+    try {
+        // Filtrar solo barberos activos
+        const whereClause = { rol: 'barbero', activo: true };
+        const barbers = await models_1.User.findAll({
+            attributes: ['id', 'nombre', 'apellido'],
+            where: whereClause,
+            order: [['nombre', 'ASC']],
+        });
+        if (!barbers || barbers.length === 0) {
+            return res.status(200).json([]); // Devuelve array vacío si no hay barberos
+        }
+        const mappedBarbers = barbers.map(barber => ({
+            id: barber.id,
+            nombre: `${barber.nombre} ${barber.apellido}`.trim(),
+        }));
+        res.status(200).json(mappedBarbers);
+    }
+    catch (error) {
+        console.error("❌ ERROR getPublicBarbers:", error);
+        res.status(500).json({ message: "Error al obtener barberos públicos" });
+    }
+};
+exports.getPublicBarbers = getPublicBarbers;

@@ -67,7 +67,7 @@ export const createUser = async (req: Request, res: Response) => {
     });
 
     const safeUser = user.toJSON();
-     const { passwordHash: _, ...userWithoutPassword } = safeUser;
+    const { passwordHash: _, ...userWithoutPassword } = safeUser;
 
     res.status(201).json(safeUser);
 
@@ -93,7 +93,7 @@ export const updateUser = async (req: Request, res: Response) => {
     await user.update(req.body);
 
     const safeUser = user.toJSON();
-     const { passwordHash: _, ...userWithoutPassword } = safeUser;
+    const { passwordHash: _, ...userWithoutPassword } = safeUser;
 
     res.json(safeUser);
 
@@ -111,5 +111,33 @@ export const deleteUser = async (req: Request, res: Response) => {
     res.json({ message: "Usuario eliminado correctamente" });
   } catch (error) {
     res.status(500).json({ message: "Error al eliminar usuario", error });
+  }
+};
+
+export const getPublicBarbers = async (req: Request, res: Response) => {
+  try {
+    // Filtrar solo barberos activos
+    const whereClause = { rol: 'barbero', activo: true };
+
+    const barbers = await User.findAll({
+      attributes: ['id', 'nombre', 'apellido'],
+      where: whereClause,
+      order: [['nombre', 'ASC']],
+    });
+
+    if (!barbers || barbers.length === 0) {
+      return res.status(200).json([]); // Devuelve array vacío si no hay barberos
+    }
+
+    const mappedBarbers = barbers.map(barber => ({
+      id: barber.id,
+      nombre: `${barber.nombre} ${barber.apellido}`.trim(),
+    }));
+
+    res.status(200).json(mappedBarbers);
+
+  } catch (error) {
+    console.error("❌ ERROR getPublicBarbers:", error);
+    res.status(500).json({ message: "Error al obtener barberos públicos" });
   }
 };

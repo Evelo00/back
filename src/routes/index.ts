@@ -17,11 +17,6 @@ const router = Router();
 router.use("/users", userRoutes);
 router.use("/sedes", sedeRoutes);
 router.use("/services", serviceRoutes);
-// router.use("/productos-nevera", productoNeveraRoutes);
-// router.use("/vitrinas", vitrinaCounterRoutes);
-// router.use("/ventas", ventaRoutes);
-// router.use("/detalles-venta", detalleVentaRoutes);
-// router.use("/barras", barraRoutes);
 router.use("/citas", citaRoutes);
 router.use("/barbero", barberoRoutes);
 

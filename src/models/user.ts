@@ -12,7 +12,7 @@ export class User extends Model<
   declare telefono: string | null;
   declare passwordHash: string;
   declare nombre: string;
-  declare apellido: string;
+  declare apellido?: string;
   declare rol: RolUsuario;
   declare activo: CreationOptional<boolean>;
   declare createdAt: CreationOptional<Date>;

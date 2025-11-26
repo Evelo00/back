@@ -9,12 +9,10 @@ const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const index_1 = __importDefault(require("./routes/index"));
-const seed_routes_1 = __importDefault(require("./routes/seed.routes"));
 const app = (0, express_1.default)();
 const allowedOrigins = process.env.FRONTEND_URL?.split(",") || [];
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
-app.use("/seed", seed_routes_1.default);
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
         if (!origin)

@@ -4,21 +4,34 @@ import { sequelize } from "../config/database";
 
 interface CitaAttributes {
   id: string;
-  clienteId: string;
+  clienteId: string | null;
   barberoId: string;
   servicioId: string;
   fechaHora: Date;
+  fechaFin: Date; // 🆕 agregado
   estado: "pendiente" | "confirmada" | "cancelada" | "completada";
 
   precioFinal: number;
   duracionMinutos: number;
   notas?: string | null;
+
+  nombreCliente?: string | null;
+  emailCliente?: string | null;
+  whatsappCliente?: string | null;
 }
 
 interface CitaCreationAttributes
   extends Optional<
     CitaAttributes,
-    "id" | "estado" | "precioFinal" | "duracionMinutos" | "notas"
+    | "id"
+    | "estado"
+    | "precioFinal"
+    | "duracionMinutos"
+    | "notas"
+    | "nombreCliente"
+    | "emailCliente"
+    | "whatsappCliente"
+    | "fechaFin"        // 🆕 agregado
   > {}
 
 class Cita
@@ -26,15 +39,22 @@ class Cita
   implements CitaAttributes
 {
   public id!: string;
-  public clienteId!: string;
+  public clienteId!: string | null;
   public barberoId!: string;
   public servicioId!: string;
+
   public fechaHora!: Date;
+  public fechaFin!: Date; // 🆕 agregado
+
   public estado!: "pendiente" | "confirmada" | "cancelada" | "completada";
 
   public precioFinal!: number;
   public duracionMinutos!: number;
   public notas!: string | null;
+
+  public nombreCliente!: string | null;
+  public emailCliente!: string | null;
+  public whatsappCliente!: string | null;
 }
 
 Cita.init(
@@ -46,20 +66,31 @@ Cita.init(
     },
     clienteId: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
+      field: "cliente_id",
     },
     barberoId: {
       type: DataTypes.UUID,
       allowNull: false,
+      field: "barbero_id",
     },
     servicioId: {
       type: DataTypes.UUID,
       allowNull: false,
+      field: "servicio_id",
     },
+
     fechaHora: {
       type: DataTypes.DATE,
       allowNull: false,
+      field: "fecha_hora",
     },
+    fechaFin: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      field: "fecha_fin",
+    },
+
     estado: {
       type: DataTypes.ENUM(
         "pendiente",
@@ -68,24 +99,42 @@ Cita.init(
         "completada"
       ),
       allowNull: false,
-      defaultValue: "pendiente",
+      defaultValue: "confirmada",
     },
 
     precioFinal: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
+      field: "precio_final",
     },
 
     duracionMinutos: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 30,
+      field: "duracion_minutos",
     },
 
     notas: {
       type: DataTypes.TEXT,
       allowNull: true,
+    },
+
+    nombreCliente: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "nombre_cliente",
+    },
+    emailCliente: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "email_cliente",
+    },
+    whatsappCliente: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "whatsapp_cliente",
     },
   },
   {
@@ -93,6 +142,7 @@ Cita.init(
     modelName: "Cita",
     tableName: "citas",
     timestamps: true,
+    paranoid: true,
   }
 );
 
