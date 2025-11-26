@@ -1,5 +1,3 @@
-// src/controllers/sede.controller.ts
-// src/controllers/sede.controller.ts
 import type { Request, Response } from "express";
 import { Sede } from "../models";
 

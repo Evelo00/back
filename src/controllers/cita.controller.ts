@@ -35,12 +35,14 @@ export const getAvailability = async (req: Request, res: Response) => {
     const SHOP_CLOSE = '19:00';
     const durationMinutes = parseInt(serviceDuration as string, 10);
 
+    // Utilizamos new Date() para parsear la fecha (ej: '2025-11-27')
     const targetDate = new Date(date as string);
 
     let targetBarberIds: string[] = [];
     if (barberId && barberId !== 'any') {
       targetBarberIds = [barberId as string];
     } else {
+      // Si es 'any' o no se proporciona, busca todos los barberos activos
       const allBarbers = await User.findAll({ where: { rol: 'barbero', activo: true } });
       targetBarberIds = allBarbers.map(b => b.id);
     }
@@ -74,6 +76,7 @@ export const getAvailability = async (req: Request, res: Response) => {
     const freeSlots: string[] = [];
 
     for (const slotTime of allPossibleSlots) {
+      // Recrea el objeto Date completo para el slot
       const slotStart = parseISO(`${format(targetDate, 'yyyy-MM-dd')}T${slotTime}:00`);
       const slotEnd = addMinutes(slotStart, durationMinutes);
 
@@ -83,9 +86,16 @@ export const getAvailability = async (req: Request, res: Response) => {
         const barberAppointments = appointmentsByBarber[barberId];
 
         const isBarberFree = !barberAppointments.some(cita => {
-          const appointmentStart = cita.fechaHora;
-          const appointmentEnd = addMinutes(appointmentStart, cita.duracionMinutos);
+          // 🔑 CORRECCIÓN CLAVE: Aseguramos que fechaHora sea un objeto Date
+          const appointmentStart = new Date(cita.fechaHora as Date | string);
 
+          // 🔑 CORRECCIÓN CLAVE: Usamos 30 como valor por defecto si duracionMinutos es null/undefined
+          const duration = cita.duracionMinutos || 30;
+
+          const appointmentEnd = addMinutes(appointmentStart, duration);
+
+          // Conflicto: slot nuevo comienza antes de que termine la cita existente
+          // O el slot nuevo termina después de que empieza la cita existente.
           return slotStart < appointmentEnd && slotEnd > appointmentStart;
         });
 
@@ -104,7 +114,8 @@ export const getAvailability = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error("❌ ERROR getAvailability:", error);
-    return res.status(500).json({ message: "Error al calcular la disponibilidad" });
+    // Devolvemos el error 500 para informar al front-end
+    return res.status(500).json({ message: "Error al calcular la disponibilidad", details: (error as Error).message });
   }
 };
 
@@ -163,7 +174,7 @@ export const createCita = async (req: Request, res: Response) => {
     return res.status(201).json(nueva);
 
   } catch (error: any) {
-    console.error("❌ ERROR createCita:", error);     // 👀 LOG 2
+    console.error("❌ ERROR createCita:", error);     // 👀 LOG 2
     return res.status(400).json({
       error: "Error al crear cita",
       details: error,

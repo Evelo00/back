@@ -10,7 +10,6 @@ export const login = async (req: Request, res: Response) => {
     if (!email || !password)
       return res.status(400).json({ message: "Email y contraseña requeridos" });
 
-    // 🔥 TIPADO CORRECTO AQUÍ
     const user = await User.findOne<User>({ where: { email } });
 
     if (!user)

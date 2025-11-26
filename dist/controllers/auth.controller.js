@@ -12,7 +12,6 @@ const login = async (req, res) => {
         const { email, password } = req.body;
         if (!email || !password)
             return res.status(400).json({ message: "Email y contraseña requeridos" });
-        // 🔥 TIPADO CORRECTO AQUÍ
         const user = await models_1.User.findOne({ where: { email } });
         if (!user)
             return res.status(404).json({ message: "Usuario no encontrado" });

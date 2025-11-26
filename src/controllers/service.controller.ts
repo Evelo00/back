@@ -1,5 +1,3 @@
-// src/controllers/service.controller.ts
-// src/controllers/service.controller.ts
 import type { Request, Response } from "express";
 import Service from "../models/service";
 

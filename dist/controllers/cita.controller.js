@@ -30,12 +30,14 @@ const getAvailability = async (req, res) => {
         const SHOP_OPEN = '09:00';
         const SHOP_CLOSE = '19:00';
         const durationMinutes = parseInt(serviceDuration, 10);
+        // Utilizamos new Date() para parsear la fecha (ej: '2025-11-27')
         const targetDate = new Date(date);
         let targetBarberIds = [];
         if (barberId && barberId !== 'any') {
             targetBarberIds = [barberId];
         }
         else {
+            // Si es 'any' o no se proporciona, busca todos los barberos activos
             const allBarbers = await models_1.User.findAll({ where: { rol: 'barbero', activo: true } });
             targetBarberIds = allBarbers.map(b => b.id);
         }
@@ -63,14 +65,20 @@ const getAvailability = async (req, res) => {
         });
         const freeSlots = [];
         for (const slotTime of allPossibleSlots) {
+            // Recrea el objeto Date completo para el slot
             const slotStart = (0, date_fns_1.parseISO)(`${(0, date_fns_1.format)(targetDate, 'yyyy-MM-dd')}T${slotTime}:00`);
             const slotEnd = (0, date_fns_1.addMinutes)(slotStart, durationMinutes);
             let isAvailable = false;
             for (const barberId of targetBarberIds) {
                 const barberAppointments = appointmentsByBarber[barberId];
                 const isBarberFree = !barberAppointments.some(cita => {
-                    const appointmentStart = cita.fechaHora;
-                    const appointmentEnd = (0, date_fns_1.addMinutes)(appointmentStart, cita.duracionMinutos);
+                    // 🔑 CORRECCIÓN CLAVE: Aseguramos que fechaHora sea un objeto Date
+                    const appointmentStart = new Date(cita.fechaHora);
+                    // 🔑 CORRECCIÓN CLAVE: Usamos 30 como valor por defecto si duracionMinutos es null/undefined
+                    const duration = cita.duracionMinutos || 30;
+                    const appointmentEnd = (0, date_fns_1.addMinutes)(appointmentStart, duration);
+                    // Conflicto: slot nuevo comienza antes de que termine la cita existente
+                    // O el slot nuevo termina después de que empieza la cita existente.
                     return slotStart < appointmentEnd && slotEnd > appointmentStart;
                 });
                 if (isBarberFree) {
@@ -86,7 +94,8 @@ const getAvailability = async (req, res) => {
     }
     catch (error) {
         console.error("❌ ERROR getAvailability:", error);
-        return res.status(500).json({ message: "Error al calcular la disponibilidad" });
+        // Devolvemos el error 500 para informar al front-end
+        return res.status(500).json({ message: "Error al calcular la disponibilidad", details: error.message });
     }
 };
 exports.getAvailability = getAvailability;
