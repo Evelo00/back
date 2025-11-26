@@ -10,7 +10,7 @@
     "sync": "npm run build && node dist/syncModels.js",
     "sync:dev": "ts-node src/syncModels.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "seed": "ts-node src/seed/seed.ts"
+    "seed": "node dist/seed/seed.js"
   },
   "keywords": [],
   "author": "",
