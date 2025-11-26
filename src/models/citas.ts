@@ -84,12 +84,11 @@ Cita.init(
       field: "fecha_hora",
     },
 
-    // // 🔥 CAMBIO IMPORTANTE: fechaFin ahora es un campo real, no virtual
-    // fechaFin: {
-    //   type: DataTypes.DATE,
-    //   allowNull: true,
-    //   field: "fecha_fin",
-    // },
+    fechaFin: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "fecha_fin",
+    },
 
     estado: {
       type: DataTypes.ENUM(

@@ -43,12 +43,11 @@ Cita.init({
         allowNull: false,
         field: "fecha_hora",
     },
-    // // 🔥 CAMBIO IMPORTANTE: fechaFin ahora es un campo real, no virtual
-    // fechaFin: {
-    //   type: DataTypes.DATE,
-    //   allowNull: true,
-    //   field: "fecha_fin",
-    // },
+    fechaFin: {
+        type: sequelize_1.DataTypes.DATE,
+        allowNull: true,
+        field: "fecha_fin",
+    },
     estado: {
         type: sequelize_1.DataTypes.ENUM("pendiente", "confirmada", "cancelada", "completada"),
         allowNull: false,

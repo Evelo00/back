@@ -12,6 +12,20 @@ async function seedAll() {
     try {
         console.log("🚀 Iniciando seed general...");
         // ----------------------
+        // Contraseñas encriptadas
+        // ----------------------
+        const defaultPassword = await bcryptjs_1.default.hash("123456", 10);
+        const superAdminPassword = await bcryptjs_1.default.hash("SuperAdminPassword123", 10);
+        // ----------------------
+        // ELIMINAR BARBEROS ANTERIORES
+        // ----------------------
+        console.log("🔥 Eliminando barberos existentes...");
+        // Esto eliminará *todos* los usuarios con rol: "barbero"
+        await user_1.User.destroy({
+            where: { rol: "barbero" },
+        });
+        console.log("✅ Barberos anteriores eliminados correctamente.");
+        // ----------------------
         // Servicios
         // ----------------------
         const services = [
@@ -43,21 +57,18 @@ async function seedAll() {
         }
         console.log("✅ Servicios cargados correctamente");
         // ----------------------
-        // Contraseñas encriptadas
-        // ----------------------
-        const defaultPassword = await bcryptjs_1.default.hash("123456", 10);
-        const superAdminPassword = await bcryptjs_1.default.hash("SuperAdminPassword123", 10);
-        // ----------------------
-        // Barberos
+        // Barberos (Nuevos)
         // ----------------------
         const barberos = [
-            { email: "juan@barberia.com", nombre: "Juan", apellido: "Pérez", rol: "barbero", passwordHash: defaultPassword },
-            { email: "carlos@barberia.com", nombre: "Carlos", apellido: "Ramírez", rol: "barbero", passwordHash: defaultPassword },
-            { email: "andres@barberia.com", nombre: "Andrés", apellido: "Gómez", rol: "barbero", passwordHash: defaultPassword },
-            { email: "luis@barberia.com", nombre: "Luis", apellido: "Martínez", rol: "barbero", passwordHash: defaultPassword },
-            { email: "felipe@barberia.com", nombre: "Felipe", apellido: "Torres", rol: "barbero", passwordHash: defaultPassword },
-            { email: "jorge@barberia.com", nombre: "Jorge", apellido: "Castro", rol: "barbero", passwordHash: defaultPassword },
-            { email: "mateo@barberia.com", nombre: "Mateo", apellido: "Hernández", rol: "barbero", passwordHash: defaultPassword },
+            { email: "jandy@barberia.com", nombre: "Jandy", apellido: " ", rol: "barbero", passwordHash: defaultPassword },
+            { email: "josecarlos@barberia.com", nombre: "José Carlos", apellido: " ", rol: "barbero", passwordHash: defaultPassword },
+            { email: "yeiber@barberia.com", nombre: "Yeiber", apellido: " ", rol: "barbero", passwordHash: defaultPassword },
+            { email: "johan@barberia.com", nombre: "Johan", apellido: " ", rol: "barbero", passwordHash: defaultPassword },
+            { email: "wilber@barberia.com", nombre: "Wilber", apellido: " ", rol: "barbero", passwordHash: defaultPassword },
+            { email: "cristianluna@barberia.com", nombre: "Cristian", apellido: " ", rol: "barbero", passwordHash: defaultPassword },
+            { email: "jesus@barberia.com", nombre: "Jesús", apellido: " ", rol: "barbero", passwordHash: defaultPassword },
+            { email: "camilo@barberia.com", nombre: "Camilo", apellido: " ", rol: "barbero", passwordHash: defaultPassword },
+            { email: "cristianacosta@barberia.com", nombre: "Cristian", apellido: " ", rol: "barbero", passwordHash: defaultPassword },
         ];
         for (const b of barberos) {
             const [user, created] = await user_1.User.findOrCreate({
