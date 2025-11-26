@@ -1,4 +1,3 @@
-// models/cita.ts
 import { DataTypes, Model, Optional } from "sequelize";
 import { sequelize } from "../config/database";
 
@@ -8,7 +7,7 @@ interface CitaAttributes {
   barberoId: string;
   servicioId: string;
   fechaHora: Date;
-  fechaFin: Date; // 🆕 agregado
+  fechaFin: Date; // Usado solo a nivel de aplicación para lógica de disponibilidad
   estado: "pendiente" | "confirmada" | "cancelada" | "completada";
 
   precioFinal: number;
@@ -31,20 +30,19 @@ interface CitaCreationAttributes
     | "nombreCliente"
     | "emailCliente"
     | "whatsappCliente"
-    | "fechaFin"        // 🆕 agregado
-  > {}
+    | "fechaFin"
+  > { }
 
 class Cita
   extends Model<CitaAttributes, CitaCreationAttributes>
-  implements CitaAttributes
-{
+  implements CitaAttributes {
   public id!: string;
   public clienteId!: string | null;
   public barberoId!: string;
   public servicioId!: string;
 
   public fechaHora!: Date;
-  public fechaFin!: Date; // 🆕 agregado
+  public fechaFin!: Date;
 
   public estado!: "pendiente" | "confirmada" | "cancelada" | "completada";
 
@@ -85,10 +83,15 @@ Cita.init(
       allowNull: false,
       field: "fecha_hora",
     },
+    // **FIX CLAVE:** Se define como VIRTUAL para resolver el error de TypeScript
     fechaFin: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      field: "fecha_fin",
+      type: DataTypes.VIRTUAL,
+      // Opcionalmente, puedes añadir un getter si necesitas que esté disponible
+      // get() {
+      //     const fecha = this.getDataValue('fechaHora');
+      //     const duracion = this.getDataValue('duracionMinutos');
+      //     return fecha ? new Date(fecha.getTime() + duracion * 60000) : undefined;
+      // }
     },
 
     estado: {

@@ -52,7 +52,7 @@ const getAvailability = async (req, res) => {
         console.log(`DB Query Range: ${startOfDayDate.toISOString()} to ${endOfDayDate.toISOString()}`);
         console.log(`Target Barber IDs: ${targetBarberIds.join(', ')}`);
         const existingAppointments = await citas_1.default.findAll({
-            // FIX: Excluimos la columna "fechaFin" que no existe en la DB para evitar el error 500
+            // FIX: Excluimos la columna "fechaFin" que no existe en la DB
             attributes: ['id', 'barberoId', 'fechaHora', 'duracionMinutos', 'estado'],
             where: {
                 barberoId: { [sequelize_1.Op.in]: targetBarberIds },
@@ -132,21 +132,22 @@ exports.getCitaById = getCitaById;
 const createCita = async (req, res) => {
     try {
         console.log("📥 Body recibido:", req.body);
-        // FIX: Se incluye 'fechaFin' en la destructuración y en la creación 
-        // porque el modelo de Sequelize tiene la columna con NOT NULL.
-        const { clienteId, barberoId, servicioId, fechaHora, fechaFin, // <--- REINCORPORADO
+        // FIX: Se incluye 'fechaFin' en la destructuración para la validación, 
+        // pero se excluye de la inserción porque la columna 'fecha_fin' no existe en la DB.
+        const { clienteId, barberoId, servicioId, fechaHora, fechaFin, // Se destruye, pero no se usa en Cita.create()
         precioFinal, duracionMinutos, nombreCliente, emailCliente, whatsappCliente, notas } = req.body;
-        // VALIDACIÓN: Aseguramos que los campos obligatorios para la creación existan.
-        // Incluímos 'fechaFin' en la validación ya que es obligatoria.
-        if (!barberoId || !servicioId || !fechaHora || !fechaFin) {
-            return res.status(400).json({ message: "Faltan campos obligatorios. 'barberoId', 'servicioId', 'fechaHora', y 'fechaFin' son requeridos para crear la cita." });
+        // VALIDACIÓN: Aseguramos que los campos obligatorios existan.
+        // Si la DB no tiene 'fechaFin', la validación aquí es redundante para el back-end, 
+        // pero la mantenemos si el front-end la requiere para calcular la duración.
+        if (!barberoId || !servicioId || !fechaHora) {
+            return res.status(400).json({ message: "Faltan campos obligatorios. 'barberoId', 'servicioId', y 'fechaHora' son requeridos para crear la cita." });
         }
         const nueva = await citas_1.default.create({
             clienteId: clienteId || null,
             barberoId,
             servicioId,
             fechaHora,
-            fechaFin: fechaFin, // <--- REINCORPORADO
+            // **CLAVE FIX:** Se excluye 'fechaFin' de la inserción para evitar el error 'column "fecha_fin" does not exist'
             estado: "confirmada",
             precioFinal: precioFinal ?? 0,
             duracionMinutos: duracionMinutos ?? 30,

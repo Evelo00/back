@@ -1,6 +1,5 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-// models/cita.ts
 const sequelize_1 = require("sequelize");
 const database_1 = require("../config/database");
 class Cita extends sequelize_1.Model {
@@ -9,7 +8,7 @@ class Cita extends sequelize_1.Model {
     barberoId;
     servicioId;
     fechaHora;
-    fechaFin; // 🆕 agregado
+    fechaFin;
     estado;
     precioFinal;
     duracionMinutos;
@@ -44,10 +43,15 @@ Cita.init({
         allowNull: false,
         field: "fecha_hora",
     },
+    // **FIX CLAVE:** Se define como VIRTUAL para resolver el error de TypeScript
     fechaFin: {
-        type: sequelize_1.DataTypes.DATE,
-        allowNull: false,
-        field: "fecha_fin",
+        type: sequelize_1.DataTypes.VIRTUAL,
+        // Opcionalmente, puedes añadir un getter si necesitas que esté disponible
+        // get() {
+        //     const fecha = this.getDataValue('fechaHora');
+        //     const duracion = this.getDataValue('duracionMinutos');
+        //     return fecha ? new Date(fecha.getTime() + duracion * 60000) : undefined;
+        // }
     },
     estado: {
         type: sequelize_1.DataTypes.ENUM("pendiente", "confirmada", "cancelada", "completada"),
