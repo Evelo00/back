@@ -108,28 +108,64 @@ const deleteUser = async (req, res) => {
     }
 };
 exports.deleteUser = deleteUser;
+// export const getPublicBarbers = async (req: Request, res: Response) => {
+//   try {
+//     const backendURL = process.env.BACKEND_URL || "http://localhost:4000";
+//     const barbers = await User.findAll({
+//       attributes: ['id', 'nombre', 'apellido', 'avatar'],
+//       where: { rol: 'barbero', activo: true },
+//     });
+//     console.log("Barbers raw:", barbers.map(b => b.toJSON()));
+//     if (!barbers || barbers.length === 0) {
+//       return res.status(200).json([]);
+//     }
+//     const mappedBarbers = barbers.map(barber => {
+//       const avatar = barber.avatar?.trim();
+//       return {
+//         id: barber.id,
+//         nombre: `${barber.nombre} ${barber.apellido}`.trim(),
+//         avatar: avatar ? `${backendURL}/public/${avatar}` : null
+//       };
+//     });
+//     res.status(200).json(mappedBarbers);
+//   } catch (error) {
+//     console.error("❌ ERROR getPublicBarbers:", error);
+//     res.status(500).json({ message: "Error al obtener barberos públicos" });
+//   }
+// };
 const getPublicBarbers = async (req, res) => {
     try {
-        const backendURL = process.env.BACKEND_URL || "http://localhost:3000";
+        const backendURL = process.env.BACKEND_URL || "http://localhost:4000";
+        console.log("Fetching barbers from DB...");
         const barbers = await models_1.User.findAll({
             attributes: ['id', 'nombre', 'apellido', 'avatar'],
             where: { rol: 'barbero', activo: true },
         });
         if (!barbers || barbers.length === 0) {
+            console.log("No barbers found.");
             return res.status(200).json([]);
         }
-        const mappedBarbers = barbers.map(barber => ({
-            id: barber.id,
-            nombre: `${barber.nombre} ${barber.apellido}`.trim(),
-            avatar: barber.avatar
-                ? `${backendURL}/public/${barber.avatar}`
-                : null
-        }));
-        res.status(200).json(mappedBarbers);
+        const mappedBarbers = barbers.map(barber => {
+            let avatarPath = barber.avatar;
+            // Si avatar ya incluye 'http', usarlo tal cual, si no, construir la URL
+            if (avatarPath && !avatarPath.startsWith('http')) {
+                avatarPath = `${backendURL}/public/${avatarPath}`;
+            }
+            return {
+                id: barber.id,
+                nombre: `${barber.nombre || ""} ${barber.apellido || ""}`.trim(),
+                avatar: avatarPath || null
+            };
+        });
+        console.log("Mapped barbers:", mappedBarbers);
+        return res.status(200).json(mappedBarbers);
     }
     catch (error) {
         console.error("❌ ERROR getPublicBarbers:", error);
-        res.status(500).json({ message: "Error al obtener barberos públicos" });
+        return res.status(500).json({
+            message: "Error al obtener barberos públicos",
+            error: error instanceof Error ? error.message : error
+        });
     }
 };
 exports.getPublicBarbers = getPublicBarbers;
