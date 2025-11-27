@@ -40,6 +40,14 @@ User.init({
         type: sequelize_1.DataTypes.STRING,
         allowNull: true,
     },
+    silla: {
+        type: sequelize_1.DataTypes.INTEGER,
+        allowNull: true,
+        validate: {
+            min: 1,
+            max: 9,
+        },
+    },
     createdAt: { type: sequelize_1.DataTypes.DATE, field: "created_at" },
     updatedAt: { type: sequelize_1.DataTypes.DATE, field: "updated_at" },
     deletedAt: { type: sequelize_1.DataTypes.DATE, field: "deleted_at" },

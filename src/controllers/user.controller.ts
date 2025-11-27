@@ -153,8 +153,9 @@ export const getPublicBarbers = async (req: Request, res: Response) => {
     console.log("Fetching barbers from DB...");
 
     const barbers = await User.findAll({
-      attributes: ['id', 'nombre', 'apellido', 'avatar'],
+      attributes: ['id', 'nombre', 'apellido', 'avatar', 'silla'],
       where: { rol: 'barbero', activo: true },
+      order: [['silla', 'ASC']]
     });
 
     if (!barbers || barbers.length === 0) {

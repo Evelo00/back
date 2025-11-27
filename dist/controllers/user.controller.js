@@ -138,8 +138,9 @@ const getPublicBarbers = async (req, res) => {
         const backendURL = process.env.BACKEND_URL || "http://localhost:4000";
         console.log("Fetching barbers from DB...");
         const barbers = await models_1.User.findAll({
-            attributes: ['id', 'nombre', 'apellido', 'avatar'],
+            attributes: ['id', 'nombre', 'apellido', 'avatar', 'silla'],
             where: { rol: 'barbero', activo: true },
+            order: [['silla', 'ASC']]
         });
         if (!barbers || barbers.length === 0) {
             console.log("No barbers found.");
@@ -149,7 +150,7 @@ const getPublicBarbers = async (req, res) => {
             let avatarPath = barber.avatar;
             // Si avatar ya incluye 'http', usarlo tal cual, si no, construir la URL
             if (avatarPath && !avatarPath.startsWith('http')) {
-                avatarPath = `${backendURL}/public/${avatarPath}`;
+                avatarPath = `${backendURL.replace(/\/$/, '')}/public/${avatarPath.replace(/^\/+/, '')}`;
             }
             return {
                 id: barber.id,

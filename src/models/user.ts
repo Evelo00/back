@@ -19,6 +19,7 @@ export class User extends Model<
   declare updatedAt: CreationOptional<Date>;
   declare deletedAt: Date | null;
   declare avatar: string | null;
+  declare silla: number | null;
 }
 
 User.init(
@@ -55,6 +56,14 @@ User.init(
     avatar: {
       type: DataTypes.STRING,
       allowNull: true,
+    },
+    silla: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      validate: {
+        min: 1,
+        max: 9,
+      },
     },
     createdAt: { type: DataTypes.DATE, field: "created_at" },
     updatedAt: { type: DataTypes.DATE, field: "updated_at" },
