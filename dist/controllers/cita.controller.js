@@ -29,6 +29,45 @@ const generateTimeSlots = (start, end, duration, interval = 30) => {
     }
     return slots;
 };
+// export const getAvailability = async (req: Request, res: Response) => {
+//   try {
+//     const { date, serviceDuration } = req.query;
+//     let barberoId = req.query.barberoId;
+//     if (Array.isArray(barberoId)) barberoId = barberoId[0];
+//     if (!date || !serviceDuration || !barberoId) {
+//       return res.status(400).json({ message: "Faltan parámetros requeridos" });
+//     }
+//     const dateStr = String(date);
+//     const durationMinutes = parseInt(serviceDuration as string, 10);
+//     const dayStartBog = `${dateStr}T00:00:00-05:00`;
+//     const dayEndBog = `${dateStr}T23:59:59-05:00`;
+//     const startUTC = bogotaToUTC(dayStartBog);
+//     const endUTC = bogotaToUTC(dayEndBog);
+//     const citas = await Cita.findAll({
+//       where: {
+//         barberoId,
+//         fechaHora: { [Op.between]: [startUTC, endUTC] },
+//       },
+//     });
+//     const allSlots = generateTimeSlots(SHOP_OPEN, SHOP_CLOSE, durationMinutes);
+//     const availableSlots: string[] = [];
+//     for (const slot of allSlots) {
+//       const localSlot = `${dateStr}T${slot}:00-05:00`;
+//       const slotStartUTC = bogotaToUTC(localSlot);
+//       const slotEndUTC = addMinutes(slotStartUTC, durationMinutes);
+//       const hasConflict = citas.some((cita) => {
+//         const start = new Date(cita.fechaHora);
+//         const end = cita.fechaFin ?? addMinutes(start, cita.duracionMinutos);
+//         return slotStartUTC < end && slotEndUTC > start;
+//       });
+//       if (!hasConflict) availableSlots.push(slot);
+//     }
+//     return res.json({ availableSlots });
+//   } catch (error) {
+//     console.error("❌ ERROR getAvailability:", error);
+//     return res.status(500).json({ error: "Error interno" });
+//   }
+// };
 const getAvailability = async (req, res) => {
     try {
         const { date, serviceDuration } = req.query;
@@ -40,10 +79,9 @@ const getAvailability = async (req, res) => {
         }
         const dateStr = String(date);
         const durationMinutes = parseInt(serviceDuration, 10);
-        const dayStartBog = `${dateStr}T00:00:00-05:00`;
-        const dayEndBog = `${dateStr}T23:59:59-05:00`;
-        const startUTC = bogotaToUTC(dayStartBog);
-        const endUTC = bogotaToUTC(dayEndBog);
+        // 👉 Fechas del día en Bogotá sin convertir manualmente
+        const startUTC = new Date(`${dateStr}T00:00:00-05:00`);
+        const endUTC = new Date(`${dateStr}T23:59:59-05:00`);
         const citas = await citas_1.default.findAll({
             where: {
                 barberoId,
@@ -53,8 +91,8 @@ const getAvailability = async (req, res) => {
         const allSlots = generateTimeSlots(SHOP_OPEN, SHOP_CLOSE, durationMinutes);
         const availableSlots = [];
         for (const slot of allSlots) {
-            const localSlot = `${dateStr}T${slot}:00-05:00`;
-            const slotStartUTC = bogotaToUTC(localSlot);
+            // 👉 Slot local en Bogotá sin convertir manualmente
+            const slotStartUTC = new Date(`${dateStr}T${slot}:00-05:00`);
             const slotEndUTC = (0, date_fns_1.addMinutes)(slotStartUTC, durationMinutes);
             const hasConflict = citas.some((cita) => {
                 const start = new Date(cita.fechaHora);
@@ -72,9 +110,74 @@ const getAvailability = async (req, res) => {
     }
 };
 exports.getAvailability = getAvailability;
+// export const createCita = async (req: Request, res: Response) => {
+//   try {
+//     const {
+//       clienteId,
+//       barberoId,
+//       servicioId,
+//       fechaHora,    // YA VIENE COMO UTC DESDE EL FRONT (toISOString())
+//       precioFinal,
+//       duracionMinutos,
+//       nombreCliente,
+//       emailCliente,
+//       whatsappCliente,
+//       notas,
+//     } = req.body;
+//     if (!barberoId || !fechaHora) {
+//       return res.status(400).json({ message: "Faltan campos requeridos" });
+//     }
+//     const isBloqueo = servicioId === BLOQUEO_SERVICE_ID;
+//     let duration: number = 30;
+//     if (isBloqueo) {
+//       duration = duracionMinutos ?? 30;
+//     } else {
+//       const servicio = await Service.findByPk(servicioId);
+//       if (!servicio)
+//         return res.status(404).json({ message: "Servicio no encontrado" });
+//       duration = servicio.duracion;
+//     }
+//     const fechaInicioUTC = new Date(fechaHora);
+//     const fechaFinUTC = addMinutes(fechaInicioUTC, duration);
+//     const conflict = await Cita.findOne({
+//       where: {
+//         barberoId,
+//         estado: { [Op.in]: ["pendiente", "confirmada", "bloqueo"] },
+//         fechaHora: { [Op.lt]: fechaFinUTC },
+//         fechaFin: { [Op.gt]: fechaInicioUTC },
+//       },
+//     });
+//     if (conflict) {
+//       return res.status(409).json({
+//         message: "El barbero ya tiene un evento en ese horario.",
+//       });
+//     }
+//     const nueva = await Cita.create({
+//       clienteId: isBloqueo ? null : clienteId,
+//       barberoId,
+//       servicioId: isBloqueo ? BLOQUEO_SERVICE_ID : servicioId,
+//       fechaHora: fechaInicioUTC,
+//       fechaFin: fechaFinUTC,
+//       estado: isBloqueo ? "bloqueo" : "confirmada",
+//       precioFinal: isBloqueo ? 0 : precioFinal ?? 0,
+//       duracionMinutos: duration,
+//       nombreCliente: isBloqueo ? null : nombreCliente,
+//       emailCliente: isBloqueo ? null : emailCliente,
+//       whatsappCliente: isBloqueo ? null : whatsappCliente,
+//       notas: notas ?? null,
+//     });
+//     return res.status(201).json(nueva);
+//   } catch (error: any) {
+//     console.error("❌ ERROR createCita:", error);
+//     return res.status(500).json({
+//       error: "Error al crear cita",
+//       details: error.message,
+//     });
+//   }
+// };
 const createCita = async (req, res) => {
     try {
-        const { clienteId, barberoId, servicioId, fechaHora, // YA VIENE COMO UTC DESDE EL FRONT (toISOString())
+        const { clienteId, barberoId, servicioId, fechaHora, // AHORA VIENE COMO: 2025-11-28T11:30:00-05:00
         precioFinal, duracionMinutos, nombreCliente, emailCliente, whatsappCliente, notas, } = req.body;
         if (!barberoId || !fechaHora) {
             return res.status(400).json({ message: "Faltan campos requeridos" });
@@ -90,14 +193,16 @@ const createCita = async (req, res) => {
                 return res.status(404).json({ message: "Servicio no encontrado" });
             duration = servicio.duracion;
         }
-        const fechaInicioUTC = new Date(fechaHora);
-        const fechaFinUTC = (0, date_fns_1.addMinutes)(fechaInicioUTC, duration);
+        // 👉 NO convertir nada manualmente
+        // 👉 Esto interpreta correctamente el -05:00 y genera UTC interno
+        const fechaInicio = new Date(fechaHora);
+        const fechaFin = (0, date_fns_1.addMinutes)(fechaInicio, duration);
         const conflict = await citas_1.default.findOne({
             where: {
                 barberoId,
                 estado: { [sequelize_1.Op.in]: ["pendiente", "confirmada", "bloqueo"] },
-                fechaHora: { [sequelize_1.Op.lt]: fechaFinUTC },
-                fechaFin: { [sequelize_1.Op.gt]: fechaInicioUTC },
+                fechaHora: { [sequelize_1.Op.lt]: fechaFin },
+                fechaFin: { [sequelize_1.Op.gt]: fechaInicio },
             },
         });
         if (conflict) {
@@ -109,8 +214,8 @@ const createCita = async (req, res) => {
             clienteId: isBloqueo ? null : clienteId,
             barberoId,
             servicioId: isBloqueo ? BLOQUEO_SERVICE_ID : servicioId,
-            fechaHora: fechaInicioUTC,
-            fechaFin: fechaFinUTC,
+            fechaHora: fechaInicio, // Sequelize lo guarda en UTC
+            fechaFin: fechaFin,
             estado: isBloqueo ? "bloqueo" : "confirmada",
             precioFinal: isBloqueo ? 0 : precioFinal ?? 0,
             duracionMinutos: duration,
@@ -140,17 +245,17 @@ const updateCita = async (req, res) => {
         }
         let nuevaFechaHoraUTC = cita.fechaHora;
         if (fechaHora) {
-            const fechaParsed = new Date(fechaHora);
-            if (isNaN(fechaParsed.getTime())) {
+            const parsed = new Date(fechaHora);
+            if (isNaN(parsed.getTime())) {
                 return res.status(400).json({ message: "Fecha inválida" });
             }
-            fechaParsed.setMinutes(fechaParsed.getMinutes() - fechaParsed.getTimezoneOffset());
-            nuevaFechaHoraUTC = fechaParsed;
+            // 👉 Usamos la fecha tal cual viene con zona horaria (-05:00)
+            nuevaFechaHoraUTC = parsed;
         }
         const nuevaFechaFinUTC = (0, date_fns_1.addMinutes)(nuevaFechaHoraUTC, cita.duracionMinutos);
         const conflict = await citas_1.default.findOne({
             where: {
-                id: { [sequelize_1.Op.ne]: id }, // excluir actual
+                id: { [sequelize_1.Op.ne]: id },
                 barberoId: cita.barberoId,
                 estado: { [sequelize_1.Op.in]: ["pendiente", "confirmada", "bloqueo"] },
                 fechaHora: { [sequelize_1.Op.lt]: nuevaFechaFinUTC },
@@ -182,6 +287,67 @@ const updateCita = async (req, res) => {
     }
 };
 exports.updateCita = updateCita;
+// export const updateCita = async (req: Request, res: Response) => {
+//   try {
+//     const id = req.params.id;
+//     const {
+//       nombreCliente,
+//       emailCliente,
+//       whatsappCliente,
+//       precioFinal,
+//       notas,
+//       fechaHora,
+//       estado
+//     } = req.body;
+//     const cita = await Cita.findByPk(id);
+//     if (!cita) {
+//       return res.status(404).json({ message: "Cita no encontrada" });
+//     }
+//     let nuevaFechaHoraUTC = cita.fechaHora;
+//     if (fechaHora) {
+//       const fechaParsed = new Date(fechaHora);
+//       if (isNaN(fechaParsed.getTime())) {
+//         return res.status(400).json({ message: "Fecha inválida" });
+//       }
+//       fechaParsed.setMinutes(fechaParsed.getMinutes() - fechaParsed.getTimezoneOffset());
+//       nuevaFechaHoraUTC = fechaParsed;
+//     }
+//     const nuevaFechaFinUTC = addMinutes(
+//       nuevaFechaHoraUTC,
+//       cita.duracionMinutos
+//     );
+//     const conflict = await Cita.findOne({
+//       where: {
+//         id: { [Op.ne]: id }, // excluir actual
+//         barberoId: cita.barberoId,
+//         estado: { [Op.in]: ["pendiente", "confirmada", "bloqueo"] },
+//         fechaHora: { [Op.lt]: nuevaFechaFinUTC },
+//         fechaFin: { [Op.gt]: nuevaFechaHoraUTC }
+//       }
+//     });
+//     if (conflict) {
+//       return res
+//         .status(409)
+//         .json({ message: "Conflicto: el barbero tiene otra cita en ese horario." });
+//     }
+//     cita.nombreCliente = nombreCliente ?? cita.nombreCliente;
+//     cita.emailCliente = emailCliente ?? cita.emailCliente;
+//     cita.whatsappCliente = whatsappCliente ?? cita.whatsappCliente;
+//     cita.precioFinal = precioFinal ?? cita.precioFinal;
+//     cita.notas = notas ?? cita.notas;
+//     cita.estado = estado ?? cita.estado;
+//     cita.fechaHora = nuevaFechaHoraUTC;
+//     cita.fechaFin = nuevaFechaFinUTC;
+//     await cita.save();
+//     return res.json({ message: "Cita actualizada", cita });
+//   } catch (error: any) {
+//     console.error("❌ ERROR updateCita:", error);
+//     return res.status(500).json({
+//       error: "Error actualizando la cita",
+//       details: error.message,
+//     });
+//   }
+// };
 const deleteCita = async (req, res) => {
     try {
         const id = req.params.id;
