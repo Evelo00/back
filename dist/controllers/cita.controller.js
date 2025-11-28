@@ -11,6 +11,11 @@ const service_1 = __importDefault(require("../models/service"));
 const date_fns_1 = require("date-fns");
 const SHOP_OPEN = "09:00";
 const SHOP_CLOSE = "21:00";
+const BLOQUEO_SERVICE_ID = "00000000-0000-0000-0000-000000000999";
+const bogotaToUTC = (dateStr) => {
+    const local = new Date(dateStr); // interpreta -05:00 correctamente
+    return new Date(local.getTime() + 5 * 3600 * 1000);
+};
 const generateTimeSlots = (start, end, duration, interval = 30) => {
     const slots = [];
     let current = (0, date_fns_1.parseISO)(`2000-01-01T${start}:00`);
@@ -33,14 +38,12 @@ const getAvailability = async (req, res) => {
         if (!date || !serviceDuration || !barberoId) {
             return res.status(400).json({ message: "Faltan parámetros requeridos" });
         }
-        const durationMinutes = parseInt(serviceDuration, 10);
         const dateStr = String(date);
-        // BOGOTÁ LOCAL
-        const dayStartBogota = new Date(`${dateStr}T00:00:00-05:00`);
-        const dayEndBogota = new Date(`${dateStr}T23:59:59-05:00`);
-        // Convertir a UTC
-        const startUTC = new Date(dayStartBogota.getTime() + 5 * 3600 * 1000);
-        const endUTC = new Date(dayEndBogota.getTime() + 5 * 3600 * 1000);
+        const durationMinutes = parseInt(serviceDuration, 10);
+        const dayStartBog = `${dateStr}T00:00:00-05:00`;
+        const dayEndBog = `${dateStr}T23:59:59-05:00`;
+        const startUTC = bogotaToUTC(dayStartBog);
+        const endUTC = bogotaToUTC(dayEndBog);
         const citas = await citas_1.default.findAll({
             where: {
                 barberoId,
@@ -50,12 +53,13 @@ const getAvailability = async (req, res) => {
         const allSlots = generateTimeSlots(SHOP_OPEN, SHOP_CLOSE, durationMinutes);
         const availableSlots = [];
         for (const slot of allSlots) {
-            const slotStartUTC = new Date(`${dateStr}T${slot}:00-05:00`);
+            const localSlot = `${dateStr}T${slot}:00-05:00`;
+            const slotStartUTC = bogotaToUTC(localSlot);
             const slotEndUTC = (0, date_fns_1.addMinutes)(slotStartUTC, durationMinutes);
             const hasConflict = citas.some((cita) => {
-                const citaStartUTC = new Date(cita.fechaHora);
-                const citaEndUTC = cita.fechaFin ?? (0, date_fns_1.addMinutes)(citaStartUTC, cita.duracionMinutos);
-                return slotStartUTC < citaEndUTC && slotEndUTC > citaStartUTC;
+                const start = new Date(cita.fechaHora);
+                const end = cita.fechaFin ?? (0, date_fns_1.addMinutes)(start, cita.duracionMinutos);
+                return slotStartUTC < end && slotEndUTC > start;
             });
             if (!hasConflict)
                 availableSlots.push(slot);
@@ -70,112 +74,133 @@ const getAvailability = async (req, res) => {
 exports.getAvailability = getAvailability;
 const createCita = async (req, res) => {
     try {
-        const { clienteId, barberoId, servicioId, fechaHora, precioFinal, nombreCliente, emailCliente, whatsappCliente, notas, } = req.body;
-        if (!barberoId || !servicioId || !fechaHora) {
-            return res.status(400).json({
-                message: "Faltan campos requeridos",
-            });
+        const { clienteId, barberoId, servicioId, fechaHora, // YA VIENE COMO UTC DESDE EL FRONT (toISOString())
+        precioFinal, duracionMinutos, nombreCliente, emailCliente, whatsappCliente, notas, } = req.body;
+        if (!barberoId || !fechaHora) {
+            return res.status(400).json({ message: "Faltan campos requeridos" });
         }
-        // 🔥 Duración REAL del servicio
-        const servicio = await service_1.default.findByPk(servicioId);
-        const duration = servicio?.duracion && servicio.duracion > 0
-            ? Number(servicio.duracion)
-            : 30;
-        console.log("⏱ duración usada (min):", duration);
-        // Fecha ya viene en UTC desde el front
+        const isBloqueo = servicioId === BLOQUEO_SERVICE_ID;
+        let duration = 30;
+        if (isBloqueo) {
+            duration = duracionMinutos ?? 30;
+        }
+        else {
+            const servicio = await service_1.default.findByPk(servicioId);
+            if (!servicio)
+                return res.status(404).json({ message: "Servicio no encontrado" });
+            duration = servicio.duracion;
+        }
         const fechaInicioUTC = new Date(fechaHora);
         const fechaFinUTC = (0, date_fns_1.addMinutes)(fechaInicioUTC, duration);
-        // 🔥 Solapamiento
         const conflict = await citas_1.default.findOne({
             where: {
                 barberoId,
-                estado: { [sequelize_1.Op.in]: ["pendiente", "confirmada"] },
+                estado: { [sequelize_1.Op.in]: ["pendiente", "confirmada", "bloqueo"] },
                 fechaHora: { [sequelize_1.Op.lt]: fechaFinUTC },
                 fechaFin: { [sequelize_1.Op.gt]: fechaInicioUTC },
             },
         });
         if (conflict) {
-            console.log("❌ SOLAPAMIENTO DETECTADO:");
-            console.log("   → cita inicio:", conflict.fechaHora);
-            console.log("   → cita fin   :", conflict.fechaFin);
-            console.log("   → slot inicio:", fechaInicioUTC);
-            console.log("   → slot fin   :", fechaFinUTC);
             return res.status(409).json({
-                message: "El barbero ya tiene una cita en ese horario.",
+                message: "El barbero ya tiene un evento en ese horario.",
             });
         }
         const nueva = await citas_1.default.create({
-            clienteId: clienteId || null,
+            clienteId: isBloqueo ? null : clienteId,
             barberoId,
-            servicioId,
+            servicioId: isBloqueo ? BLOQUEO_SERVICE_ID : servicioId,
             fechaHora: fechaInicioUTC,
             fechaFin: fechaFinUTC,
-            estado: "confirmada",
-            precioFinal: precioFinal ?? 0,
+            estado: isBloqueo ? "bloqueo" : "confirmada",
+            precioFinal: isBloqueo ? 0 : precioFinal ?? 0,
             duracionMinutos: duration,
-            nombreCliente,
-            emailCliente,
-            whatsappCliente,
-            notas,
+            nombreCliente: isBloqueo ? null : nombreCliente,
+            emailCliente: isBloqueo ? null : emailCliente,
+            whatsappCliente: isBloqueo ? null : whatsappCliente,
+            notas: notas ?? null,
         });
         return res.status(201).json(nueva);
     }
     catch (error) {
         console.error("❌ ERROR createCita:", error);
-        return res
-            .status(400)
-            .json({ error: "Error al crear cita", details: error.message });
+        return res.status(500).json({
+            error: "Error al crear cita",
+            details: error.message,
+        });
     }
 };
 exports.createCita = createCita;
 const updateCita = async (req, res) => {
     try {
-        const cita = await citas_1.default.findByPk(req.params.id);
-        if (!cita)
-            return res.status(404).json({ error: "Cita no encontrada" });
-        const { fechaHora, duracionMinutos, ...rest } = req.body;
-        const updates = rest;
-        if (fechaHora || duracionMinutos) {
-            const nuevaFechaUTC = fechaHora
-                ? new Date(fechaHora)
-                : new Date(cita.fechaHora);
-            const newDuration = duracionMinutos ?? cita.duracionMinutos ?? 30;
-            updates.fechaHora = nuevaFechaUTC;
-            updates.duracionMinutos = newDuration;
-            updates.fechaFin = (0, date_fns_1.addMinutes)(nuevaFechaUTC, newDuration);
-            const conflict = await citas_1.default.findOne({
-                where: {
-                    barberoId: cita.barberoId,
-                    estado: { [sequelize_1.Op.in]: ["pendiente", "confirmada"] },
-                    id: { [sequelize_1.Op.ne]: cita.id },
-                    fechaHora: { [sequelize_1.Op.lt]: updates.fechaFin },
-                    fechaFin: { [sequelize_1.Op.gt]: updates.fechaHora },
-                },
-            });
-            if (conflict) {
-                return res.status(409).json({
-                    message: "La actualización se solapa con otra cita.",
-                });
-            }
+        const id = req.params.id;
+        const { nombreCliente, emailCliente, whatsappCliente, precioFinal, notas, fechaHora, estado } = req.body;
+        const cita = await citas_1.default.findByPk(id);
+        if (!cita) {
+            return res.status(404).json({ message: "Cita no encontrada" });
         }
-        await cita.update(updates);
-        return res.json(cita);
+        let nuevaFechaHoraUTC = cita.fechaHora;
+        if (fechaHora) {
+            const fechaParsed = new Date(fechaHora);
+            if (isNaN(fechaParsed.getTime())) {
+                return res.status(400).json({ message: "Fecha inválida" });
+            }
+            fechaParsed.setMinutes(fechaParsed.getMinutes() - fechaParsed.getTimezoneOffset());
+            nuevaFechaHoraUTC = fechaParsed;
+        }
+        const nuevaFechaFinUTC = (0, date_fns_1.addMinutes)(nuevaFechaHoraUTC, cita.duracionMinutos);
+        const conflict = await citas_1.default.findOne({
+            where: {
+                id: { [sequelize_1.Op.ne]: id }, // excluir actual
+                barberoId: cita.barberoId,
+                estado: { [sequelize_1.Op.in]: ["pendiente", "confirmada", "bloqueo"] },
+                fechaHora: { [sequelize_1.Op.lt]: nuevaFechaFinUTC },
+                fechaFin: { [sequelize_1.Op.gt]: nuevaFechaHoraUTC }
+            }
+        });
+        if (conflict) {
+            return res
+                .status(409)
+                .json({ message: "Conflicto: el barbero tiene otra cita en ese horario." });
+        }
+        cita.nombreCliente = nombreCliente ?? cita.nombreCliente;
+        cita.emailCliente = emailCliente ?? cita.emailCliente;
+        cita.whatsappCliente = whatsappCliente ?? cita.whatsappCliente;
+        cita.precioFinal = precioFinal ?? cita.precioFinal;
+        cita.notas = notas ?? cita.notas;
+        cita.estado = estado ?? cita.estado;
+        cita.fechaHora = nuevaFechaHoraUTC;
+        cita.fechaFin = nuevaFechaFinUTC;
+        await cita.save();
+        return res.json({ message: "Cita actualizada", cita });
     }
     catch (error) {
-        return res.status(400).json({ error: "Error al actualizar cita", details: error });
+        console.error("❌ ERROR updateCita:", error);
+        return res.status(500).json({
+            error: "Error actualizando la cita",
+            details: error.message,
+        });
     }
 };
 exports.updateCita = updateCita;
 const deleteCita = async (req, res) => {
     try {
-        const cita = await citas_1.default.findByPk(req.params.id);
-        if (!cita)
-            return res.status(404).json({ error: "Cita no encontrada" });
+        const id = req.params.id;
+        const cita = await citas_1.default.findByPk(id);
+        if (!cita) {
+            return res.status(404).json({ message: "Cita no encontrada" });
+        }
         await cita.destroy();
-        return res.json({ message: "Cita eliminada correctamente" });
+        return res.json({
+            message: "Cita eliminada correctamente",
+            id
+        });
     }
     catch (error) {
-        return res.status(500).json({ error: "Error al eliminar cita", details: error });
+        console.error("❌ ERROR eliminando cita:", error);
+        return res.status(500).json({
+            error: "Error eliminando la cita",
+            details: error.message,
+        });
     }
 };
 exports.deleteCita = deleteCita;
@@ -207,9 +232,8 @@ exports.getCitas = getCitas;
 const getCitaById = async (req, res) => {
     try {
         const cita = await citas_1.default.findByPk(req.params.id);
-        if (!cita) {
+        if (!cita)
             return res.status(404).json({ message: "Cita no encontrada" });
-        }
         return res.json(cita);
     }
     catch (err) {

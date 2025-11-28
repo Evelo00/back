@@ -11,6 +11,6 @@ router.post("/", cita_controller_1.createCita);
 router.get("/", cita_controller_1.getCitas);
 router.get("/:id", auth_middleware_1.authMiddleware, cita_controller_1.getCitaById);
 router.put("/:id", auth_middleware_1.authMiddleware, (0, role_middleware_1.requireRole)("barbero", "superadmin"), cita_controller_1.updateCita);
-router.patch("/:id", auth_middleware_1.authMiddleware, (0, role_middleware_1.requireRole)("barbero", "superadmin"), cita_controller_1.updateCita);
-router.delete("/:id", auth_middleware_1.authMiddleware, (0, role_middleware_1.requireRole)("superadmin"), cita_controller_1.deleteCita);
+router.patch("/:id", cita_controller_1.updateCita);
+router.delete("/:id", cita_controller_1.deleteCita);
 exports.default = router;

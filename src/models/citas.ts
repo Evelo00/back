@@ -17,7 +17,7 @@ export class Cita extends Model<
   declare servicioId: string;
   declare fechaHora: Date;
   declare fechaFin: Date;
-  declare estado: "pendiente" | "confirmada" | "cancelada" | "completada";
+  declare estado: "pendiente" | "confirmada" | "cancelada" | "completada" | "bloqueo";
   declare precioFinal: number;
   declare duracionMinutos: number;
   declare notas: string | null;
@@ -62,7 +62,7 @@ Cita.init(
       field: "fecha_fin",
     },
     estado: {
-      type: DataTypes.ENUM("pendiente", "confirmada", "cancelada", "completada"),
+      type: DataTypes.ENUM("pendiente", "confirmada", "cancelada", "completada", "bloqueo"),
       defaultValue: "confirmada",
       allowNull: false,
     },

@@ -38,7 +38,7 @@ Cita.init({
         field: "fecha_fin",
     },
     estado: {
-        type: sequelize_1.DataTypes.ENUM("pendiente", "confirmada", "cancelada", "completada"),
+        type: sequelize_1.DataTypes.ENUM("pendiente", "confirmada", "cancelada", "completada", "bloqueo"),
         defaultValue: "confirmada",
         allowNull: false,
     },

@@ -31,15 +31,11 @@ router.put(
 
 router.patch(
   "/:id",
-  authMiddleware,
-  requireRole("barbero", "superadmin"),
   updateCita
 );
 
 router.delete(
   "/:id",
-  authMiddleware,
-  requireRole("superadmin"),
   deleteCita
 );
 
