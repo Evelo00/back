@@ -193,8 +193,6 @@ const createCita = async (req, res) => {
                 return res.status(404).json({ message: "Servicio no encontrado" });
             duration = servicio.duracion;
         }
-        // 👉 NO convertir nada manualmente
-        // 👉 Esto interpreta correctamente el -05:00 y genera UTC interno
         const fechaInicio = new Date(fechaHora);
         const fechaFin = (0, date_fns_1.addMinutes)(fechaInicio, duration);
         const conflict = await citas_1.default.findOne({
@@ -249,7 +247,6 @@ const updateCita = async (req, res) => {
             if (isNaN(parsed.getTime())) {
                 return res.status(400).json({ message: "Fecha inválida" });
             }
-            // 👉 Usamos la fecha tal cual viene con zona horaria (-05:00)
             nuevaFechaHoraUTC = parsed;
         }
         const nuevaFechaFinUTC = (0, date_fns_1.addMinutes)(nuevaFechaHoraUTC, cita.duracionMinutos);

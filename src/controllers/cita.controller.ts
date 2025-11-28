@@ -250,8 +250,6 @@ export const createCita = async (req: Request, res: Response) => {
       duration = servicio.duracion;
     }
 
-    // 👉 NO convertir nada manualmente
-    // 👉 Esto interpreta correctamente el -05:00 y genera UTC interno
     const fechaInicio = new Date(fechaHora);
     const fechaFin = addMinutes(fechaInicio, duration);
 
@@ -323,7 +321,6 @@ export const updateCita = async (req: Request, res: Response) => {
         return res.status(400).json({ message: "Fecha inválida" });
       }
 
-      // 👉 Usamos la fecha tal cual viene con zona horaria (-05:00)
       nuevaFechaHoraUTC = parsed;
     }
 
