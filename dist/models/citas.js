@@ -1,22 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Cita = void 0;
 const sequelize_1 = require("sequelize");
 const database_1 = require("../config/database");
 class Cita extends sequelize_1.Model {
-    id;
-    clienteId;
-    barberoId;
-    servicioId;
-    fechaHora;
-    fechaFin;
-    estado;
-    precioFinal;
-    duracionMinutos;
-    notas;
-    nombreCliente;
-    emailCliente;
-    whatsappCliente;
 }
+exports.Cita = Cita;
 Cita.init({
     id: {
         type: sequelize_1.DataTypes.UUID,
@@ -45,13 +34,13 @@ Cita.init({
     },
     fechaFin: {
         type: sequelize_1.DataTypes.DATE,
-        allowNull: true,
+        allowNull: false,
         field: "fecha_fin",
     },
     estado: {
         type: sequelize_1.DataTypes.ENUM("pendiente", "confirmada", "cancelada", "completada"),
-        allowNull: false,
         defaultValue: "confirmada",
+        allowNull: false,
     },
     precioFinal: {
         type: sequelize_1.DataTypes.INTEGER,
@@ -65,10 +54,7 @@ Cita.init({
         defaultValue: 30,
         field: "duracion_minutos",
     },
-    notas: {
-        type: sequelize_1.DataTypes.TEXT,
-        allowNull: true,
-    },
+    notas: { type: sequelize_1.DataTypes.TEXT, allowNull: true },
     nombreCliente: {
         type: sequelize_1.DataTypes.STRING,
         allowNull: true,
@@ -84,11 +70,13 @@ Cita.init({
         allowNull: true,
         field: "whatsapp_cliente",
     },
+    createdAt: { type: sequelize_1.DataTypes.DATE, field: "created_at" },
+    updatedAt: { type: sequelize_1.DataTypes.DATE, field: "updated_at" },
+    deletedAt: { type: sequelize_1.DataTypes.DATE, field: "deleted_at" },
 }, {
     sequelize: database_1.sequelize,
-    modelName: "Cita",
     tableName: "citas",
-    timestamps: true,
     paranoid: true,
+    timestamps: true,
 });
 exports.default = Cita;

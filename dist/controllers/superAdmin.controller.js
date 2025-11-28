@@ -8,6 +8,7 @@ const user_1 = require("../models/user");
 const citas_1 = __importDefault(require("../models/citas"));
 const service_1 = __importDefault(require("../models/service"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
+const sequelize_1 = require("sequelize");
 const obtenerTodosLosUsuarios = async (_req, res) => {
     try {
         const usuarios = await user_1.User.findAll({
@@ -85,6 +86,7 @@ exports.actualizarUsuario = actualizarUsuario;
 const obtenerTodasLasCitas = async (_req, res) => {
     try {
         const citas = await citas_1.default.findAll({
+            where: { estado: { [sequelize_1.Op.not]: "bloqueo" } }, // ignorar bloques
             order: [["fechaHora", "ASC"]],
             include: [
                 {
@@ -94,7 +96,7 @@ const obtenerTodasLasCitas = async (_req, res) => {
                 {
                     model: user_1.User,
                     as: "clienteCita",
-                    attributes: ["nombre", "apellido"]
+                    attributes: ["nombre"]
                 },
                 {
                     model: user_1.User,

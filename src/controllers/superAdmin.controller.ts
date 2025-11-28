@@ -81,7 +81,7 @@ export const actualizarUsuario = async (req: Request, res: Response) => {
     await usuario.save();
 
     const userResponse = await User.findByPk(id, {
-        attributes: { exclude: ["passwordHash"] }
+      attributes: { exclude: ["passwordHash"] }
     });
 
     return res.json(userResponse);
@@ -95,16 +95,17 @@ export const actualizarUsuario = async (req: Request, res: Response) => {
 export const obtenerTodasLasCitas = async (_req: Request, res: Response) => {
   try {
     const citas = await Cita.findAll({
+      where: { estado: { [Op.not]: "bloqueo" } }, // ignorar bloques
       order: [["fechaHora", "ASC"]],
       include: [
-        { 
-          model: Service, 
-          as: "servicioCita" 
+        {
+          model: Service,
+          as: "servicioCita"
         },
-        { 
+        {
           model: User,
           as: "clienteCita",
-          attributes: ["nombre", "apellido"]
+          attributes: ["nombre"]
         },
         {
           model: User,

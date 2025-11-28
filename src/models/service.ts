@@ -1,23 +1,20 @@
-import { DataTypes, Model, type Optional } from "sequelize";
+import {
+  DataTypes,
+  Model,
+  InferAttributes,
+  InferCreationAttributes,
+  CreationOptional,
+} from "sequelize";
 import { sequelize } from "../config/database";
 
-export interface ServiceAttributes {
-  id: string;
-  nombre: string;
-  precio: number;
-  duracion: number;
-}
-
-export type ServiceCreationAttributes = Optional<ServiceAttributes, "id">;
-
-class Service
-  extends Model<ServiceAttributes, ServiceCreationAttributes>
-  implements ServiceAttributes
-{
-  public id!: string;
-  public nombre!: string;
-  public precio!: number;
-  public duracion!: number;
+export class Service extends Model<
+  InferAttributes<Service>,
+  InferCreationAttributes<Service>
+> {
+  declare id: CreationOptional<string>;
+  declare nombre: string;
+  declare precio: number;
+  declare duracion: number;
 }
 
 Service.init(
@@ -27,24 +24,27 @@ Service.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+
     nombre: {
       type: DataTypes.STRING,
       allowNull: false,
     },
+
     precio: {
       type: DataTypes.FLOAT,
       allowNull: false,
     },
+
     duracion: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      comment: "Duración en minutos",
+      comment: "Duración del servicio en minutos",
     },
   },
   {
     sequelize,
-    modelName: "Servicio",
     tableName: "servicios",
+    modelName: "Service",
     timestamps: false,
   }
 );

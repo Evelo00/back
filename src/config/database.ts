@@ -24,19 +24,25 @@ const sequelize = new Sequelize(dbName, dbUser, dbPassword, {
   port: dbPort,
   dialect: "postgres",
   logging: false,
+
+  timezone: "+00:00",
+
+  dialectOptions: {
+    useUTC: true,
+    dateStrings: false,
+    ...(isProduction && {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false,
+      },
+    }),
+  },
+
   define: {
     underscored: true,
     timestamps: true,
     paranoid: true,
-  },
-  dialectOptions: isProduction
-    ? {
-        ssl: {
-          require: true,
-          rejectUnauthorized: false,
-        },
-      }
-    : {}, // Sin SSL en local
+  }
 });
 
 export const connectDB = async (): Promise<void> => {

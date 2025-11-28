@@ -27,19 +27,22 @@ const sequelize = new sequelize_1.Sequelize(dbName, dbUser, dbPassword, {
     port: dbPort,
     dialect: "postgres",
     logging: false,
-    define: {
-        underscored: true,
-        timestamps: true,
-        paranoid: true,
-    },
-    dialectOptions: isProduction
-        ? {
+    timezone: "+00:00",
+    dialectOptions: {
+        useUTC: true,
+        dateStrings: false,
+        ...(isProduction && {
             ssl: {
                 require: true,
                 rejectUnauthorized: false,
             },
-        }
-        : {}, // Sin SSL en local
+        }),
+    },
+    define: {
+        underscored: true,
+        timestamps: true,
+        paranoid: true,
+    }
 });
 exports.sequelize = sequelize;
 const connectDB = async () => {

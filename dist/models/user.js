@@ -26,8 +26,14 @@ User.init({
         allowNull: false,
         field: "password_hash",
     },
-    nombre: { type: sequelize_1.DataTypes.STRING, allowNull: false },
-    apellido: { type: sequelize_1.DataTypes.STRING, allowNull: false },
+    nombre: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
+    },
+    apellido: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
+    },
     rol: {
         type: sequelize_1.DataTypes.ENUM("superadmin", "caja", "barbero", "cliente"),
         allowNull: false,
@@ -48,12 +54,23 @@ User.init({
             max: 9,
         },
     },
-    createdAt: { type: sequelize_1.DataTypes.DATE, field: "created_at" },
-    updatedAt: { type: sequelize_1.DataTypes.DATE, field: "updated_at" },
-    deletedAt: { type: sequelize_1.DataTypes.DATE, field: "deleted_at" },
+    createdAt: {
+        type: sequelize_1.DataTypes.DATE,
+        field: "created_at",
+    },
+    updatedAt: {
+        type: sequelize_1.DataTypes.DATE,
+        field: "updated_at",
+    },
+    deletedAt: {
+        type: sequelize_1.DataTypes.DATE,
+        field: "deleted_at",
+    },
 }, {
     sequelize: database_1.sequelize,
     tableName: "usuarios",
+    modelName: "User",
     paranoid: true,
     timestamps: true,
 });
+exports.default = User;

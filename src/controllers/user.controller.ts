@@ -66,18 +66,18 @@ export const createUser = async (req: Request, res: Response) => {
       telefono: telefono ?? null,
     });
 
-    const safeUser = user.toJSON();
-    const { passwordHash: _, ...userWithoutPassword } = safeUser;
+    const { passwordHash: _, ...safeUser } = user.toJSON();
 
-    res.status(201).json(safeUser);
+    return res.status(201).json(safeUser);
 
   } catch (error) {
-    res.status(400).json({
+    return res.status(400).json({
       message: "Error al crear usuario",
       error,
     });
   }
 };
+
 
 export const updateUser = async (req: Request, res: Response) => {
   try {
@@ -92,13 +92,12 @@ export const updateUser = async (req: Request, res: Response) => {
 
     await user.update(req.body);
 
-    const safeUser = user.toJSON();
-    const { passwordHash: _, ...userWithoutPassword } = safeUser;
+    const { passwordHash: _, ...safeUser } = user.toJSON();
 
-    res.json(safeUser);
+    return res.json(safeUser);
 
   } catch (error) {
-    res.status(400).json({ message: "Error al actualizar usuario", error });
+    return res.status(400).json({ message: "Error al actualizar usuario", error });
   }
 };
 
@@ -114,79 +113,44 @@ export const deleteUser = async (req: Request, res: Response) => {
   }
 };
 
-// export const getPublicBarbers = async (req: Request, res: Response) => {
-//   try {
-//     const backendURL = process.env.BACKEND_URL || "http://localhost:4000";
-
-//     const barbers = await User.findAll({
-//       attributes: ['id', 'nombre', 'apellido', 'avatar'],
-//       where: { rol: 'barbero', activo: true },
-//     });
-
-//     console.log("Barbers raw:", barbers.map(b => b.toJSON()));
-
-//     if (!barbers || barbers.length === 0) {
-//       return res.status(200).json([]);
-//     }
-
-//     const mappedBarbers = barbers.map(barber => {
-//       const avatar = barber.avatar?.trim();
-//       return {
-//         id: barber.id,
-//         nombre: `${barber.nombre} ${barber.apellido}`.trim(),
-//         avatar: avatar ? `${backendURL}/public/${avatar}` : null
-//       };
-//     });
-
-//     res.status(200).json(mappedBarbers);
-
-//   } catch (error) {
-//     console.error("❌ ERROR getPublicBarbers:", error);
-//     res.status(500).json({ message: "Error al obtener barberos públicos" });
-//   }
-// };
-
 export const getPublicBarbers = async (req: Request, res: Response) => {
   try {
-    const backendURL = process.env.BACKEND_URL || "http://localhost:4000";
-
-    console.log("Fetching barbers from DB...");
+    const backendURL = (process.env.BACKEND_URL || "http://localhost:4000").replace(/\/$/, "");
 
     const barbers = await User.findAll({
-      attributes: ['id', 'nombre', 'apellido', 'avatar', 'silla'],
-      where: { rol: 'barbero', activo: true },
-      order: [['silla', 'ASC']]
+      attributes: ["id", "nombre", "apellido", "avatar", "silla", "telefono"],
+      where: { rol: "barbero", activo: true },
+      order: [["silla", "ASC"]],
     });
 
-    if (!barbers || barbers.length === 0) {
-      console.log("No barbers found.");
+    if (!barbers.length) {
       return res.status(200).json([]);
     }
 
-    const mappedBarbers = barbers.map(barber => {
-      let avatarPath = barber.avatar;
-
-      // Si avatar ya incluye 'http', usarlo tal cual, si no, construir la URL
-      if (avatarPath && !avatarPath.startsWith('http')) {
-        avatarPath = `${backendURL.replace(/\/$/, '')}/public/${avatarPath.replace(/^\/+/, '')}`;
+    const mapped = barbers.map((barber) => {
+      let avatar = barber.avatar;
+      if (avatar && !avatar.startsWith("http")) {
+        avatar = `${backendURL}/public/${avatar.replace(/^\/+/, "")}`;
       }
-
 
       return {
         id: barber.id,
-        nombre: `${barber.nombre || ""} ${barber.apellido || ""}`.trim(),
-        avatar: avatarPath || null
+        nombre: barber.nombre,
+        apellido: barber.apellido,
+        nombreCompleto: `${barber.nombre} ${barber.apellido}`.trim(),
+        avatar: avatar || null,
+        silla: barber.silla,
+        telefono: barber.telefono || null,
       };
     });
 
-    console.log("Mapped barbers:", mappedBarbers);
-    return res.status(200).json(mappedBarbers);
+    return res.status(200).json(mapped);
 
   } catch (error) {
     console.error("❌ ERROR getPublicBarbers:", error);
     return res.status(500).json({
       message: "Error al obtener barberos públicos",
-      error: error instanceof Error ? error.message : error
+      error: error instanceof Error ? error.message : error,
     });
   }
 };

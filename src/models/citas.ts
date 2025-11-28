@@ -1,58 +1,32 @@
-import { DataTypes, Model, Optional } from "sequelize";
+import {
+  DataTypes,
+  Model,
+  InferAttributes,
+  InferCreationAttributes,
+  CreationOptional
+} from "sequelize";
 import { sequelize } from "../config/database";
 
-interface CitaAttributes {
-  id: string;
-  clienteId: string | null;
-  barberoId: string;
-  servicioId: string;
-  fechaHora: Date;
-  fechaFin?: Date | null;
-  estado: "pendiente" | "confirmada" | "cancelada" | "completada";
-
-  precioFinal: number;
-  duracionMinutos: number;
-  notas?: string | null;
-
-  nombreCliente?: string | null;
-  emailCliente?: string | null;
-  whatsappCliente?: string | null;
-}
-
-interface CitaCreationAttributes
-  extends Optional<
-    CitaAttributes,
-    | "id"
-    | "estado"
-    | "precioFinal"
-    | "duracionMinutos"
-    | "notas"
-    | "nombreCliente"
-    | "emailCliente"
-    | "whatsappCliente"
-    | "fechaFin"
-  > { }
-
-class Cita
-  extends Model<CitaAttributes, CitaCreationAttributes>
-  implements CitaAttributes {
-  public id!: string;
-  public clienteId!: string | null;
-  public barberoId!: string;
-  public servicioId!: string;
-
-  public fechaHora!: Date;
-  public fechaFin?: Date | null;
-
-  public estado!: "pendiente" | "confirmada" | "cancelada" | "completada";
-
-  public precioFinal!: number;
-  public duracionMinutos!: number;
-  public notas!: string | null;
-
-  public nombreCliente!: string | null;
-  public emailCliente!: string | null;
-  public whatsappCliente!: string | null;
+export class Cita extends Model<
+  InferAttributes<Cita>,
+  InferCreationAttributes<Cita>
+> {
+  declare id: CreationOptional<string>;
+  declare clienteId: string | null;
+  declare barberoId: string;
+  declare servicioId: string;
+  declare fechaHora: Date;
+  declare fechaFin: Date;
+  declare estado: "pendiente" | "confirmada" | "cancelada" | "completada";
+  declare precioFinal: number;
+  declare duracionMinutos: number;
+  declare notas: string | null;
+  declare nombreCliente: string | null;
+  declare emailCliente: string | null;
+  declare whatsappCliente: string | null;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
+  declare deletedAt: Date | null;
 }
 
 Cita.init(
@@ -77,49 +51,34 @@ Cita.init(
       allowNull: false,
       field: "servicio_id",
     },
-
     fechaHora: {
       type: DataTypes.DATE,
       allowNull: false,
       field: "fecha_hora",
     },
-
     fechaFin: {
       type: DataTypes.DATE,
-      allowNull: true,
+      allowNull: false,
       field: "fecha_fin",
     },
-
     estado: {
-      type: DataTypes.ENUM(
-        "pendiente",
-        "confirmada",
-        "cancelada",
-        "completada"
-      ),
-      allowNull: false,
+      type: DataTypes.ENUM("pendiente", "confirmada", "cancelada", "completada"),
       defaultValue: "confirmada",
+      allowNull: false,
     },
-
     precioFinal: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
       field: "precio_final",
     },
-
     duracionMinutos: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 30,
       field: "duracion_minutos",
     },
-
-    notas: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-
+    notas: { type: DataTypes.TEXT, allowNull: true },
     nombreCliente: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -135,13 +94,15 @@ Cita.init(
       allowNull: true,
       field: "whatsapp_cliente",
     },
+    createdAt: { type: DataTypes.DATE, field: "created_at" },
+    updatedAt: { type: DataTypes.DATE, field: "updated_at" },
+    deletedAt: { type: DataTypes.DATE, field: "deleted_at" },
   },
   {
     sequelize,
-    modelName: "Cita",
     tableName: "citas",
-    timestamps: true,
     paranoid: true,
+    timestamps: true,
   }
 );
 

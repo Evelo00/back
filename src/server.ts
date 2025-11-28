@@ -1,55 +1,52 @@
+// src/server.ts
 import dotenv from "dotenv";
-if (process.env.NODE_ENV !== "production") {
-  dotenv.config();
-}
+dotenv.config();
+
 import { createServer } from "http";
 import app from "./app";
-import { initSocket } from "./websocket/socket";
 import { connectDB, sequelize } from "./config/database";
+import { initSocket } from "./websocket/socket";
 import { createSuperAdmin } from "./seed/create-superadmin";
 
-const APP_PORT = Number(process.env.PORT) || Number(process.env.APP_PORT);
+const PORT = Number(process.env.PORT) || 4000;
 const HOST = "0.0.0.0";
 
+// Crear servidor HTTP
 const server = createServer(app);
 
+// Inicializar WebSockets DESPUÉS de crear server
 initSocket(server);
-console.log("ENV ->", {
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  user: process.env.DB_USER,
-  pass: process.env.DB_PASSWORD,
+
+// ---------- Manejo global de errores ----------
+process.on("uncaughtException", (err) => {
+  console.error("❌ Error no capturado:", err);
 });
 
-const startServer = () => {
-  server.listen(APP_PORT, HOST, () => {
-    console.log(`🚀 Servidor corriendo en http://${HOST}:${APP_PORT}`);
+process.on("unhandledRejection", (reason) => {
+  console.error("❌ Promesa rechazada no manejada:", reason);
+});
+
+// ---------- Iniciar servidor ----------
+const startHTTP = () => {
+  server.listen(PORT, HOST, () => {
+    console.log(`🚀 Servidor corriendo en http://${HOST}:${PORT}`);
   });
 };
 
 connectDB()
-  .then(() => {
-    sequelize
-      .sync({ force: false })
-      .then(async () => {
-        await createSuperAdmin();
+  .then(async () => {
+    try {
+      await sequelize.sync({ alter: false });
+      await createSuperAdmin();
 
-        console.log("✅ Modelos sincronizados con la base de datos.");
-        startServer(); // Inicia el servidor después de la sincronización exitosa
-      })
-      .catch((err) => {
-        console.error("❌ Error al sincronizar modelos o en seeds:", err);
-        // Si la conexión funcionó pero la sincronización/seeds falló, es un error grave.
-        process.exit(1);
-      });
+      console.log("✅ Modelos sincronizados correctamente.");
+      startHTTP();
+    } catch (syncErr) {
+      console.error("❌ Error al sincronizar modelos:", syncErr);
+      startHTTP(); // Mantener servicio arriba
+    }
   })
-  .catch((err) => {
-    console.error(
-      "❌ Error al conectar a la base de datos. Iniciando sin conexión a DB:",
-      err
-    );
-    // 🔑 CAMBIO CLAVE: Llama a startServer() si la conexión a la DB falla.
-    // Esto resuelve el 502 Bad Gateway de Seenode. Las rutas de la API que
-    // dependan de la DB fallarán con error 500, pero el servicio estará "up".
-    startServer();
+  .catch((dbErr) => {
+    console.error("❌ Error conectando a DB:", dbErr);
+    startHTTP(); // El servidor sigue arriba aunque DB falle
   });
