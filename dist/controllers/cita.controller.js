@@ -16,7 +16,7 @@ const bogotaToUTC = (dateStr) => {
     const local = new Date(dateStr); // interpreta -05:00 correctamente
     return new Date(local.getTime() + 5 * 3600 * 1000);
 };
-const generateTimeSlots = (start, end, duration, interval = 30) => {
+const generateTimeSlots = (start, end, duration, interval = 15) => {
     const slots = [];
     let current = (0, date_fns_1.parseISO)(`2000-01-01T${start}:00`);
     const endTime = (0, date_fns_1.parseISO)(`2000-01-01T${end}:00`);

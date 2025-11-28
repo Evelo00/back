@@ -20,7 +20,7 @@ const generateTimeSlots = (
   start: string,
   end: string,
   duration: number,
-  interval = 30
+  interval = 15
 ): string[] => {
   const slots: string[] = [];
   let current = parseISO(`2000-01-01T${start}:00`);
