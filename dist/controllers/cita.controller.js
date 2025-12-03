@@ -10,30 +10,29 @@ const sequelize_1 = require("sequelize");
 const service_1 = __importDefault(require("../models/service"));
 const date_fns_1 = require("date-fns");
 function getDaySchedule(dateStr) {
-    const day = new Date(dateStr).getDay();
+    // dateStr viene como "YYYY-MM-DD"
+    const [year, month, dayNum] = dateStr.split("-").map(Number);
+    // Crear fecha local (NO UTC)
+    const date = new Date(year, month - 1, dayNum);
+    const day = date.getDay(); // 0 = domingo
     if (day === 0) {
-        return { start: "10:00", last: "18:30" }; // 30 min antes de 19:00
+        return { start: "10:00", last: "18:30" }; // Domingo + festivos
     }
     if (day >= 1 && day <= 4) {
-        return { start: "08:00", last: "19:30" }; // 30 min antes de 20:00
+        return { start: "08:00", last: "19:30" }; // Lunes a jueves
     }
     if (day === 5 || day === 6) {
-        return { start: "08:00", last: "20:30" }; // 30 min antes de 21:00
+        return { start: "08:00", last: "20:30" }; // Viernes y sábado
     }
-    return { start: "08:00", last: "20:30" };
+    return { start: "08:00", last: "19:30" };
 }
-const generateTimeSlots = (start, end, duration, interval = 15) => {
+const generateTimeSlots = (start, end, _duration, // ya no se usa
+interval = 15) => {
     const slots = [];
     let current = (0, date_fns_1.parseISO)(`2000-01-01T${start}:00`);
-    const [endHour, endMinute] = end.split(":").map(Number);
     const endLimit = (0, date_fns_1.parseISO)(`2000-01-01T${end}:00`);
     while (current <= endLimit) {
-        const hh = current.getHours();
-        const mm = current.getMinutes();
-        // 🔥 Validación corregida
-        if (hh < endHour || (hh === endHour && mm <= endMinute)) {
-            slots.push((0, date_fns_1.format)(current, "HH:mm"));
-        }
+        slots.push((0, date_fns_1.format)(current, "HH:mm"));
         current = (0, date_fns_1.addMinutes)(current, interval);
     }
     return slots;
@@ -97,7 +96,7 @@ const createCita = async (req, res) => {
                 return res.status(404).json({ message: "Servicio no encontrado" });
             duration = servicio.duracion;
         }
-        const fechaInicio = new Date(fechaHora);
+        const fechaInicio = new Date(fechaHora.endsWith("Z") ? fechaHora : fechaHora + "-05:00");
         const fechaFin = (0, date_fns_1.addMinutes)(fechaInicio, duration);
         const conflict = await citas_1.default.findOne({
             where: {
@@ -117,7 +116,7 @@ const createCita = async (req, res) => {
             barberoId,
             servicioId: isBloqueo ? BLOQUEO_SERVICE_ID : servicioId,
             fechaHora: fechaInicio,
-            fechaFin: fechaFin,
+            fechaFin,
             estado: isBloqueo ? "bloqueo" : "confirmada",
             precioFinal: isBloqueo ? 0 : precioFinal ?? 0,
             duracionMinutos: duration,
@@ -146,7 +145,8 @@ const updateCita = async (req, res) => {
             return res.status(404).json({ message: "Cita no encontrada" });
         let nuevaFechaHoraUTC = cita.fechaHora;
         if (fechaHora) {
-            const parsed = new Date(fechaHora);
+            /* ⬅ FIX TIMEZONE */
+            const parsed = new Date(fechaHora.endsWith("Z") ? fechaHora : fechaHora + "-05:00");
             if (isNaN(parsed.getTime()))
                 return res.status(400).json({ message: "Fecha inválida" });
             nuevaFechaHoraUTC = parsed;
