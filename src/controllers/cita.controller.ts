@@ -107,6 +107,7 @@ export const createCita = async (req: Request, res: Response) => {
       barberoId,
       servicioId,
       fechaHora,
+      fechaFin,
       precioFinal,
       duracionMinutos,
       nombreCliente,
@@ -115,17 +116,25 @@ export const createCita = async (req: Request, res: Response) => {
       notas,
     } = req.body;
 
-    if (!barberoId || !fechaHora) {
+    if (!barberoId || !fechaHora || !fechaFin) {
       return res.status(400).json({ message: "Faltan campos requeridos" });
     }
 
     const isBloqueo = servicioId === BLOQUEO_SERVICE_ID;
 
-    let duration = 30;
+    const inicio = new Date(fechaHora);
+    const fin = new Date(fechaFin);
 
-    if (isBloqueo) {
-      duration = duracionMinutos ?? 30;
-    } else {
+    if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
+      return res.status(400).json({
+        message: "Fecha inválida",
+        details: { fechaHora, fechaFin },
+      });
+    }
+
+    let duration = duracionMinutos ?? 30;
+
+    if (!isBloqueo) {
       const servicio = await Service.findByPk(servicioId);
       if (!servicio)
         return res.status(404).json({ message: "Servicio no encontrado" });
@@ -133,36 +142,36 @@ export const createCita = async (req: Request, res: Response) => {
       duration = servicio.duracion;
     }
 
-    const fechaInicio = new Date(
-      fechaHora.endsWith("Z") ? fechaHora : fechaHora + "-05:00"
-    );
-
-    const fechaFin = addMinutes(fechaInicio, duration);
-
     const conflict = await Cita.findOne({
       where: {
         barberoId,
+        fechaHora: { [Op.lt]: fin },
+        fechaFin: { [Op.gt]: inicio },
         estado: { [Op.in]: ["pendiente", "confirmada", "bloqueo"] },
-        fechaHora: { [Op.lt]: fechaFin },
-        fechaFin: { [Op.gt]: fechaInicio },
       },
     });
 
-    if (conflict) {
-      return res.status(409).json({
-        message: "El barbero ya tiene un evento en ese horario.",
-      });
+    if (conflict && !isBloqueo) {
+      // EL ADMIN SIEMPRE PUEDE CREAR CITA A PESAR DE BLOQUEOS
+      // pero solo si servicio ≠ BLOQUEO
+      if (conflict.estado === "bloqueo") {
+        // permitir
+      } else {
+        return res.status(409).json({
+          message: "El barbero ya tiene un evento en ese horario.",
+        });
+      }
     }
 
     const nueva = await Cita.create({
       clienteId: isBloqueo ? null : clienteId,
       barberoId,
       servicioId: isBloqueo ? BLOQUEO_SERVICE_ID : servicioId,
-      fechaHora: fechaInicio,
-      fechaFin,
+      fechaHora: inicio,
+      fechaFin: fin,
+      duracionMinutos: duration,
       estado: isBloqueo ? "bloqueo" : "confirmada",
       precioFinal: isBloqueo ? 0 : precioFinal ?? 0,
-      duracionMinutos: duration,
       nombreCliente: isBloqueo ? null : nombreCliente,
       emailCliente: isBloqueo ? null : emailCliente,
       whatsappCliente: isBloqueo ? null : whatsappCliente,
@@ -178,6 +187,7 @@ export const createCita = async (req: Request, res: Response) => {
     });
   }
 };
+
 
 export const updateCita = async (req: Request, res: Response) => {
   try {

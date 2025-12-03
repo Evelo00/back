@@ -81,45 +81,55 @@ const getAvailability = async (req, res) => {
 exports.getAvailability = getAvailability;
 const createCita = async (req, res) => {
     try {
-        const { clienteId, barberoId, servicioId, fechaHora, precioFinal, duracionMinutos, nombreCliente, emailCliente, whatsappCliente, notas, } = req.body;
-        if (!barberoId || !fechaHora) {
+        const { clienteId, barberoId, servicioId, fechaHora, fechaFin, precioFinal, duracionMinutos, nombreCliente, emailCliente, whatsappCliente, notas, } = req.body;
+        if (!barberoId || !fechaHora || !fechaFin) {
             return res.status(400).json({ message: "Faltan campos requeridos" });
         }
         const isBloqueo = servicioId === BLOQUEO_SERVICE_ID;
-        let duration = 30;
-        if (isBloqueo) {
-            duration = duracionMinutos ?? 30;
+        const inicio = new Date(fechaHora);
+        const fin = new Date(fechaFin);
+        if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
+            return res.status(400).json({
+                message: "Fecha inválida",
+                details: { fechaHora, fechaFin },
+            });
         }
-        else {
+        let duration = duracionMinutos ?? 30;
+        if (!isBloqueo) {
             const servicio = await service_1.default.findByPk(servicioId);
             if (!servicio)
                 return res.status(404).json({ message: "Servicio no encontrado" });
             duration = servicio.duracion;
         }
-        const fechaInicio = new Date(fechaHora.endsWith("Z") ? fechaHora : fechaHora + "-05:00");
-        const fechaFin = (0, date_fns_1.addMinutes)(fechaInicio, duration);
         const conflict = await citas_1.default.findOne({
             where: {
                 barberoId,
+                fechaHora: { [sequelize_1.Op.lt]: fin },
+                fechaFin: { [sequelize_1.Op.gt]: inicio },
                 estado: { [sequelize_1.Op.in]: ["pendiente", "confirmada", "bloqueo"] },
-                fechaHora: { [sequelize_1.Op.lt]: fechaFin },
-                fechaFin: { [sequelize_1.Op.gt]: fechaInicio },
             },
         });
-        if (conflict) {
-            return res.status(409).json({
-                message: "El barbero ya tiene un evento en ese horario.",
-            });
+        if (conflict && !isBloqueo) {
+            // EL ADMIN SIEMPRE PUEDE CREAR CITA A PESAR DE BLOQUEOS
+            // pero solo si servicio ≠ BLOQUEO
+            if (conflict.estado === "bloqueo") {
+                // permitir
+            }
+            else {
+                return res.status(409).json({
+                    message: "El barbero ya tiene un evento en ese horario.",
+                });
+            }
         }
         const nueva = await citas_1.default.create({
             clienteId: isBloqueo ? null : clienteId,
             barberoId,
             servicioId: isBloqueo ? BLOQUEO_SERVICE_ID : servicioId,
-            fechaHora: fechaInicio,
-            fechaFin,
+            fechaHora: inicio,
+            fechaFin: fin,
+            duracionMinutos: duration,
             estado: isBloqueo ? "bloqueo" : "confirmada",
             precioFinal: isBloqueo ? 0 : precioFinal ?? 0,
-            duracionMinutos: duration,
             nombreCliente: isBloqueo ? null : nombreCliente,
             emailCliente: isBloqueo ? null : emailCliente,
             whatsappCliente: isBloqueo ? null : whatsappCliente,
