@@ -143,7 +143,10 @@ const updateCita = async (req, res) => {
             return res.status(404).json({ message: "Cita no encontrada" });
         let nuevaFechaInicio = cita.fechaHora;
         if (fechaHora) {
-            const parsed = new Date(fechaHora);
+            const fixed = fechaHora.includes("Z") || fechaHora.includes("+") || fechaHora.includes("-")
+                ? fechaHora
+                : fechaHora + "-05:00";
+            const parsed = new Date(fixed);
             if (isNaN(parsed.getTime()))
                 return res.status(400).json({ message: "fechaHora inválida" });
             nuevaFechaInicio = parsed;
