@@ -187,10 +187,8 @@ export const updateCita = async (req: Request, res: Response) => {
     let nuevaFechaInicio = cita.fechaHora;
 
     if (fechaHora) {
-      const fixed =
-        fechaHora.includes("Z") || fechaHora.includes("+") || fechaHora.includes("-")
-          ? fechaHora
-          : fechaHora + "-05:00";
+      const hasTimezone = /([+-]\d{2}:\d{2}|Z)$/i.test(fechaHora);
+      const fixed = hasTimezone ? fechaHora : fechaHora + "-05:00";
 
       const parsed = new Date(fixed);
       if (isNaN(parsed.getTime()))
