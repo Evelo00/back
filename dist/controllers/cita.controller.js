@@ -9,25 +9,23 @@ const user_1 = require("../models/user");
 const sequelize_1 = require("sequelize");
 const service_1 = __importDefault(require("../models/service"));
 const date_fns_1 = require("date-fns");
+const BLOQUEO_SERVICE_ID = "00000000-0000-0000-0000-000000000999";
 function getDaySchedule(dateStr) {
-    // dateStr viene como "YYYY-MM-DD"
     const [year, month, dayNum] = dateStr.split("-").map(Number);
-    // Crear fecha local (NO UTC)
     const date = new Date(year, month - 1, dayNum);
-    const day = date.getDay(); // 0 = domingo
+    const day = date.getDay(); // 0 domingo
     if (day === 0) {
-        return { start: "10:00", last: "18:30" }; // Domingo + festivos
+        return { start: "10:00", last: "18:30" };
     }
     if (day >= 1 && day <= 4) {
-        return { start: "08:00", last: "19:30" }; // Lunes a jueves
+        return { start: "08:00", last: "19:30" };
     }
     if (day === 5 || day === 6) {
-        return { start: "08:00", last: "20:30" }; // Viernes y sábado
+        return { start: "08:00", last: "20:30" };
     }
     return { start: "08:00", last: "19:30" };
 }
-const generateTimeSlots = (start, end, _duration, // ya no se usa
-interval = 15) => {
+const generateTimeSlots = (start, end, interval = 15) => {
     const slots = [];
     let current = (0, date_fns_1.parseISO)(`2000-01-01T${start}:00`);
     const endLimit = (0, date_fns_1.parseISO)(`2000-01-01T${end}:00`);
@@ -37,36 +35,33 @@ interval = 15) => {
     }
     return slots;
 };
-const BLOQUEO_SERVICE_ID = "00000000-0000-0000-0000-000000000999";
 const getAvailability = async (req, res) => {
     try {
-        const { date, serviceDuration } = req.query;
-        let barberoId = req.query.barberoId;
-        if (Array.isArray(barberoId))
-            barberoId = barberoId[0];
+        const { date, serviceDuration, barberoId } = req.query;
         if (!date || !serviceDuration || !barberoId) {
             return res.status(400).json({ message: "Faltan parámetros requeridos" });
         }
         const dateStr = String(date);
-        const durationMinutes = parseInt(serviceDuration, 10);
+        const duration = parseInt(serviceDuration, 10);
+        // rango del día en Bogotá
         const startUTC = new Date(`${dateStr}T00:00:00-05:00`);
         const endUTC = new Date(`${dateStr}T23:59:59-05:00`);
         const citas = await citas_1.default.findAll({
             where: {
-                barberoId,
+                barberoId: String(barberoId),
                 fechaHora: { [sequelize_1.Op.between]: [startUTC, endUTC] },
             },
         });
         const { start, last } = getDaySchedule(dateStr);
-        const allSlots = generateTimeSlots(start, last, durationMinutes);
+        const allSlots = generateTimeSlots(start, last);
         const availableSlots = [];
         for (const slot of allSlots) {
             const slotStartUTC = new Date(`${dateStr}T${slot}:00-05:00`);
-            const slotEndUTC = (0, date_fns_1.addMinutes)(slotStartUTC, durationMinutes);
+            const slotEndUTC = (0, date_fns_1.addMinutes)(slotStartUTC, duration);
             const hasConflict = citas.some((cita) => {
-                const start = new Date(cita.fechaHora);
-                const end = cita.fechaFin ?? (0, date_fns_1.addMinutes)(start, cita.duracionMinutos);
-                return slotStartUTC < end && slotEndUTC > start;
+                const inicio = new Date(cita.fechaHora);
+                const fin = cita.fechaFin ?? (0, date_fns_1.addMinutes)(inicio, cita.duracionMinutos);
+                return slotStartUTC < fin && slotEndUTC > inicio;
             });
             if (!hasConflict)
                 availableSlots.push(slot);
@@ -86,12 +81,13 @@ const createCita = async (req, res) => {
             return res.status(400).json({ message: "Faltan campos requeridos" });
         }
         const isBloqueo = servicioId === BLOQUEO_SERVICE_ID;
+        // VALIDAR SIN MANIPULAR TZ
         const inicio = new Date(fechaHora);
         const fin = new Date(fechaFin);
         if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
             return res.status(400).json({
-                message: "Fecha inválida",
-                details: { fechaHora, fechaFin },
+                error: "Fecha inválida",
+                details: { fechaHora, fechaFin }
             });
         }
         let duration = duracionMinutos ?? 30;
@@ -101,6 +97,7 @@ const createCita = async (req, res) => {
                 return res.status(404).json({ message: "Servicio no encontrado" });
             duration = servicio.duracion;
         }
+        // VALIDACIÓN DE CONFLICTOS
         const conflict = await citas_1.default.findOne({
             where: {
                 barberoId,
@@ -109,17 +106,11 @@ const createCita = async (req, res) => {
                 estado: { [sequelize_1.Op.in]: ["pendiente", "confirmada", "bloqueo"] },
             },
         });
-        if (conflict && !isBloqueo) {
-            // EL ADMIN SIEMPRE PUEDE CREAR CITA A PESAR DE BLOQUEOS
-            // pero solo si servicio ≠ BLOQUEO
-            if (conflict.estado === "bloqueo") {
-                // permitir
-            }
-            else {
-                return res.status(409).json({
-                    message: "El barbero ya tiene un evento en ese horario.",
-                });
-            }
+        // El admin puede meter citas ENCIMA de un bloqueo
+        if (conflict && !isBloqueo && conflict.estado !== "bloqueo") {
+            return res.status(409).json({
+                message: "El barbero ya tiene un evento en ese horario.",
+            });
         }
         const nueva = await citas_1.default.create({
             clienteId: isBloqueo ? null : clienteId,
@@ -149,29 +140,29 @@ exports.createCita = createCita;
 const updateCita = async (req, res) => {
     try {
         const id = req.params.id;
-        const { nombreCliente, emailCliente, whatsappCliente, precioFinal, notas, fechaHora, estado } = req.body;
+        const { nombreCliente, emailCliente, whatsappCliente, precioFinal, notas, fechaHora, estado, } = req.body;
         const cita = await citas_1.default.findByPk(id);
         if (!cita)
             return res.status(404).json({ message: "Cita no encontrada" });
         let nuevaFechaHoraUTC = cita.fechaHora;
         if (fechaHora) {
-            /* ⬅ FIX TIMEZONE */
-            const parsed = new Date(fechaHora.endsWith("Z") ? fechaHora : fechaHora + "-05:00");
+            const parsed = new Date(fechaHora);
             if (isNaN(parsed.getTime()))
                 return res.status(400).json({ message: "Fecha inválida" });
             nuevaFechaHoraUTC = parsed;
         }
         const nuevaFechaFinUTC = (0, date_fns_1.addMinutes)(nuevaFechaHoraUTC, cita.duracionMinutos);
+        // CONFLICTOS (permitimos encima de bloqueos)
         const conflict = await citas_1.default.findOne({
             where: {
                 id: { [sequelize_1.Op.ne]: id },
                 barberoId: cita.barberoId,
-                estado: { [sequelize_1.Op.in]: ["pendiente", "confirmada", "bloqueo"] },
                 fechaHora: { [sequelize_1.Op.lt]: nuevaFechaFinUTC },
                 fechaFin: { [sequelize_1.Op.gt]: nuevaFechaHoraUTC },
+                estado: { [sequelize_1.Op.in]: ["pendiente", "confirmada", "bloqueo"] },
             },
         });
-        if (conflict) {
+        if (conflict && conflict.estado !== "bloqueo") {
             return res.status(409).json({
                 message: "Conflicto: el barbero tiene otra cita en ese horario."
             });
@@ -205,7 +196,7 @@ const deleteCita = async (req, res) => {
         await cita.destroy();
         return res.json({
             message: "Cita eliminada correctamente",
-            id
+            id,
         });
     }
     catch (error) {

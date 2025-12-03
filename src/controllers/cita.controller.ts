@@ -6,37 +6,30 @@ import Service from "../models/service";
 
 import { addMinutes, parseISO, format } from "date-fns";
 
-function getDaySchedule(dateStr: string) {
-  // dateStr viene como "YYYY-MM-DD"
-  const [year, month, dayNum] = dateStr.split("-").map(Number);
+const BLOQUEO_SERVICE_ID = "00000000-0000-0000-0000-000000000999";
 
-  // Crear fecha local (NO UTC)
+function getDaySchedule(dateStr: string) {
+  const [year, month, dayNum] = dateStr.split("-").map(Number);
   const date = new Date(year, month - 1, dayNum);
-  const day = date.getDay(); // 0 = domingo
+  const day = date.getDay(); // 0 domingo
 
   if (day === 0) {
-    return { start: "10:00", last: "18:30" }; // Domingo + festivos
+    return { start: "10:00", last: "18:30" };
   }
 
   if (day >= 1 && day <= 4) {
-    return { start: "08:00", last: "19:30" }; // Lunes a jueves
+    return { start: "08:00", last: "19:30" };
   }
 
   if (day === 5 || day === 6) {
-    return { start: "08:00", last: "20:30" }; // Viernes y sábado
+    return { start: "08:00", last: "20:30" };
   }
 
   return { start: "08:00", last: "19:30" };
 }
 
-const generateTimeSlots = (
-  start: string,
-  end: string,
-  _duration: number, // ya no se usa
-  interval = 15
-): string[] => {
+const generateTimeSlots = (start: string, end: string, interval = 15): string[] => {
   const slots: string[] = [];
-
   let current = parseISO(`2000-01-01T${start}:00`);
   const endLimit = parseISO(`2000-01-01T${end}:00`);
 
@@ -48,46 +41,43 @@ const generateTimeSlots = (
   return slots;
 };
 
-const BLOQUEO_SERVICE_ID = "00000000-0000-0000-0000-000000000999";
-
 export const getAvailability = async (req: Request, res: Response) => {
   try {
-    const { date, serviceDuration } = req.query;
-    let barberoId = req.query.barberoId;
+    const { date, serviceDuration, barberoId } = req.query;
 
-    if (Array.isArray(barberoId)) barberoId = barberoId[0];
     if (!date || !serviceDuration || !barberoId) {
       return res.status(400).json({ message: "Faltan parámetros requeridos" });
     }
 
     const dateStr = String(date);
-    const durationMinutes = parseInt(serviceDuration as string, 10);
+    const duration = parseInt(serviceDuration as string, 10);
 
+    // rango del día en Bogotá
     const startUTC = new Date(`${dateStr}T00:00:00-05:00`);
     const endUTC = new Date(`${dateStr}T23:59:59-05:00`);
 
     const citas = await Cita.findAll({
       where: {
-        barberoId,
+        barberoId: String(barberoId),
         fechaHora: { [Op.between]: [startUTC, endUTC] },
       },
     });
 
     const { start, last } = getDaySchedule(dateStr);
 
-    const allSlots = generateTimeSlots(start, last, durationMinutes);
+    const allSlots = generateTimeSlots(start, last);
 
     const availableSlots: string[] = [];
 
     for (const slot of allSlots) {
       const slotStartUTC = new Date(`${dateStr}T${slot}:00-05:00`);
-      const slotEndUTC = addMinutes(slotStartUTC, durationMinutes);
+      const slotEndUTC = addMinutes(slotStartUTC, duration);
 
       const hasConflict = citas.some((cita) => {
-        const start = new Date(cita.fechaHora);
-        const end = cita.fechaFin ?? addMinutes(start, cita.duracionMinutos);
+        const inicio = new Date(cita.fechaHora);
+        const fin = cita.fechaFin ?? addMinutes(inicio, cita.duracionMinutos);
 
-        return slotStartUTC < end && slotEndUTC > start;
+        return slotStartUTC < fin && slotEndUTC > inicio;
       });
 
       if (!hasConflict) availableSlots.push(slot);
@@ -122,13 +112,14 @@ export const createCita = async (req: Request, res: Response) => {
 
     const isBloqueo = servicioId === BLOQUEO_SERVICE_ID;
 
+    // VALIDAR SIN MANIPULAR TZ
     const inicio = new Date(fechaHora);
     const fin = new Date(fechaFin);
 
     if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
       return res.status(400).json({
-        message: "Fecha inválida",
-        details: { fechaHora, fechaFin },
+        error: "Fecha inválida",
+        details: { fechaHora, fechaFin }
       });
     }
 
@@ -142,6 +133,7 @@ export const createCita = async (req: Request, res: Response) => {
       duration = servicio.duracion;
     }
 
+    // VALIDACIÓN DE CONFLICTOS
     const conflict = await Cita.findOne({
       where: {
         barberoId,
@@ -151,16 +143,11 @@ export const createCita = async (req: Request, res: Response) => {
       },
     });
 
-    if (conflict && !isBloqueo) {
-      // EL ADMIN SIEMPRE PUEDE CREAR CITA A PESAR DE BLOQUEOS
-      // pero solo si servicio ≠ BLOQUEO
-      if (conflict.estado === "bloqueo") {
-        // permitir
-      } else {
-        return res.status(409).json({
-          message: "El barbero ya tiene un evento en ese horario.",
-        });
-      }
+    // El admin puede meter citas ENCIMA de un bloqueo
+    if (conflict && !isBloqueo && conflict.estado !== "bloqueo") {
+      return res.status(409).json({
+        message: "El barbero ya tiene un evento en ese horario.",
+      });
     }
 
     const nueva = await Cita.create({
@@ -188,10 +175,10 @@ export const createCita = async (req: Request, res: Response) => {
   }
 };
 
-
 export const updateCita = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
+
     const {
       nombreCliente,
       emailCliente,
@@ -199,7 +186,7 @@ export const updateCita = async (req: Request, res: Response) => {
       precioFinal,
       notas,
       fechaHora,
-      estado
+      estado,
     } = req.body;
 
     const cita = await Cita.findByPk(id);
@@ -208,10 +195,7 @@ export const updateCita = async (req: Request, res: Response) => {
     let nuevaFechaHoraUTC = cita.fechaHora;
 
     if (fechaHora) {
-      /* ⬅ FIX TIMEZONE */
-      const parsed = new Date(
-        fechaHora.endsWith("Z") ? fechaHora : fechaHora + "-05:00"
-      );
+      const parsed = new Date(fechaHora);
 
       if (isNaN(parsed.getTime()))
         return res.status(400).json({ message: "Fecha inválida" });
@@ -219,22 +203,20 @@ export const updateCita = async (req: Request, res: Response) => {
       nuevaFechaHoraUTC = parsed;
     }
 
-    const nuevaFechaFinUTC = addMinutes(
-      nuevaFechaHoraUTC,
-      cita.duracionMinutos
-    );
+    const nuevaFechaFinUTC = addMinutes(nuevaFechaHoraUTC, cita.duracionMinutos);
 
+    // CONFLICTOS (permitimos encima de bloqueos)
     const conflict = await Cita.findOne({
       where: {
         id: { [Op.ne]: id },
         barberoId: cita.barberoId,
-        estado: { [Op.in]: ["pendiente", "confirmada", "bloqueo"] },
         fechaHora: { [Op.lt]: nuevaFechaFinUTC },
         fechaFin: { [Op.gt]: nuevaFechaHoraUTC },
+        estado: { [Op.in]: ["pendiente", "confirmada", "bloqueo"] },
       },
     });
 
-    if (conflict) {
+    if (conflict && conflict.estado !== "bloqueo") {
       return res.status(409).json({
         message: "Conflicto: el barbero tiene otra cita en ese horario."
       });
@@ -273,7 +255,7 @@ export const deleteCita = async (req: Request, res: Response) => {
 
     return res.json({
       message: "Cita eliminada correctamente",
-      id
+      id,
     });
   } catch (error: any) {
     console.error("❌ ERROR eliminando cita:", error);
