@@ -3,7 +3,6 @@ import Cita from "../models/citas";
 import { User } from "../models/user";
 import { Op } from "sequelize";
 import Service from "../models/service";
-
 import { addMinutes, parseISO, format } from "date-fns";
 
 const BLOQUEO_SERVICE_ID = "00000000-0000-0000-0000-000000000999";
@@ -11,20 +10,11 @@ const BLOQUEO_SERVICE_ID = "00000000-0000-0000-0000-000000000999";
 function getDaySchedule(dateStr: string) {
   const [year, month, dayNum] = dateStr.split("-").map(Number);
   const date = new Date(year, month - 1, dayNum);
-  const day = date.getDay(); // 0 domingo
+  const day = date.getDay();
 
-  if (day === 0) {
-    return { start: "10:00", last: "18:30" };
-  }
-
-  if (day >= 1 && day <= 4) {
-    return { start: "08:00", last: "19:30" };
-  }
-
-  if (day === 5 || day === 6) {
-    return { start: "08:00", last: "20:30" };
-  }
-
+  if (day === 0) return { start: "10:00", last: "18:30" };
+  if (day >= 1 && day <= 4) return { start: "08:00", last: "19:30" };
+  if (day === 5 || day === 6) return { start: "08:00", last: "20:30" };
   return { start: "08:00", last: "19:30" };
 }
 
@@ -45,14 +35,12 @@ export const getAvailability = async (req: Request, res: Response) => {
   try {
     const { date, serviceDuration, barberoId } = req.query;
 
-    if (!date || !serviceDuration || !barberoId) {
+    if (!date || !serviceDuration || !barberoId)
       return res.status(400).json({ message: "Faltan parámetros requeridos" });
-    }
 
     const dateStr = String(date);
     const duration = parseInt(serviceDuration as string, 10);
 
-    // rango del día en Bogotá
     const startUTC = new Date(`${dateStr}T00:00:00-05:00`);
     const endUTC = new Date(`${dateStr}T23:59:59-05:00`);
 
@@ -64,7 +52,6 @@ export const getAvailability = async (req: Request, res: Response) => {
     });
 
     const { start, last } = getDaySchedule(dateStr);
-
     const allSlots = generateTimeSlots(start, last);
 
     const availableSlots: string[] = [];
@@ -106,24 +93,28 @@ export const createCita = async (req: Request, res: Response) => {
       notas,
     } = req.body;
 
-    if (!barberoId || !fechaHora || !fechaFin) {
+    if (!barberoId || !fechaHora)
       return res.status(400).json({ message: "Faltan campos requeridos" });
-    }
 
     const isBloqueo = servicioId === BLOQUEO_SERVICE_ID;
 
-    // VALIDAR SIN MANIPULAR TZ
     const inicio = new Date(fechaHora);
-    const fin = new Date(fechaFin);
+    if (isNaN(inicio.getTime()))
+      return res.status(400).json({ message: "fechaHora inválida" });
 
-    if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
-      return res.status(400).json({
-        error: "Fecha inválida",
-        details: { fechaHora, fechaFin }
-      });
+    let fin: Date | null = null;
+    let duration = 30;
+
+    if (isBloqueo) {
+      if (!fechaFin)
+        return res.status(400).json({ message: "fechaFin requerida para bloqueos" });
+
+      fin = new Date(fechaFin);
+      if (isNaN(fin.getTime()))
+        return res.status(400).json({ message: "fechaFin inválida" });
+
+      duration = duracionMinutos ?? 30;
     }
-
-    let duration = duracionMinutos ?? 30;
 
     if (!isBloqueo) {
       const servicio = await Service.findByPk(servicioId);
@@ -131,9 +122,13 @@ export const createCita = async (req: Request, res: Response) => {
         return res.status(404).json({ message: "Servicio no encontrado" });
 
       duration = servicio.duracion;
+      fin = addMinutes(inicio, duration);
     }
 
-    // VALIDACIÓN DE CONFLICTOS
+    if (!fin) {
+      return res.status(500).json({ error: "Error interno al calcular fechaFin" });
+    }
+
     const conflict = await Cita.findOne({
       where: {
         barberoId,
@@ -143,11 +138,8 @@ export const createCita = async (req: Request, res: Response) => {
       },
     });
 
-    // El admin puede meter citas ENCIMA de un bloqueo
     if (conflict && !isBloqueo && conflict.estado !== "bloqueo") {
-      return res.status(409).json({
-        message: "El barbero ya tiene un evento en ese horario.",
-      });
+      return res.status(409).json({ message: "El barbero ya tiene un evento en ese horario." });
     }
 
     const nueva = await Cita.create({
@@ -192,34 +184,30 @@ export const updateCita = async (req: Request, res: Response) => {
     const cita = await Cita.findByPk(id);
     if (!cita) return res.status(404).json({ message: "Cita no encontrada" });
 
-    let nuevaFechaHoraUTC = cita.fechaHora;
+    let nuevaFechaInicio = cita.fechaHora;
 
     if (fechaHora) {
       const parsed = new Date(fechaHora);
-
       if (isNaN(parsed.getTime()))
-        return res.status(400).json({ message: "Fecha inválida" });
+        return res.status(400).json({ message: "fechaHora inválida" });
 
-      nuevaFechaHoraUTC = parsed;
+      nuevaFechaInicio = parsed;
     }
 
-    const nuevaFechaFinUTC = addMinutes(nuevaFechaHoraUTC, cita.duracionMinutos);
+    const nuevaFechaFin = addMinutes(nuevaFechaInicio, cita.duracionMinutos);
 
-    // CONFLICTOS (permitimos encima de bloqueos)
     const conflict = await Cita.findOne({
       where: {
         id: { [Op.ne]: id },
         barberoId: cita.barberoId,
-        fechaHora: { [Op.lt]: nuevaFechaFinUTC },
-        fechaFin: { [Op.gt]: nuevaFechaHoraUTC },
+        fechaHora: { [Op.lt]: nuevaFechaFin },
+        fechaFin: { [Op.gt]: nuevaFechaInicio },
         estado: { [Op.in]: ["pendiente", "confirmada", "bloqueo"] },
       },
     });
 
     if (conflict && conflict.estado !== "bloqueo") {
-      return res.status(409).json({
-        message: "Conflicto: el barbero tiene otra cita en ese horario."
-      });
+      return res.status(409).json({ message: "Conflicto: ya existe una cita en ese horario." });
     }
 
     cita.nombreCliente = nombreCliente ?? cita.nombreCliente;
@@ -228,8 +216,8 @@ export const updateCita = async (req: Request, res: Response) => {
     cita.precioFinal = precioFinal ?? cita.precioFinal;
     cita.notas = notas ?? cita.notas;
     cita.estado = estado ?? cita.estado;
-    cita.fechaHora = nuevaFechaHoraUTC;
-    cita.fechaFin = nuevaFechaFinUTC;
+    cita.fechaHora = nuevaFechaInicio;
+    cita.fechaFin = nuevaFechaFin;
 
     await cita.save();
 
@@ -237,7 +225,7 @@ export const updateCita = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error("❌ ERROR updateCita:", error);
     return res.status(500).json({
-      error: "Error actualizando la cita",
+      error: "Error actualizando cita",
       details: error.message,
     });
   }
