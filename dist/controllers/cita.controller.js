@@ -137,10 +137,11 @@ exports.createCita = createCita;
 const updateCita = async (req, res) => {
     try {
         const id = req.params.id;
-        const { nombreCliente, emailCliente, whatsappCliente, precioFinal, notas, fechaHora, estado, } = req.body;
+        const { nombreCliente, emailCliente, whatsappCliente, precioFinal, notas, fechaHora, estado, servicioId, duracionMinutos, } = req.body;
         const cita = await citas_1.default.findByPk(id);
         if (!cita)
             return res.status(404).json({ message: "Cita no encontrada" });
+        // === FECHA DE INICIO ===
         let nuevaFechaInicio = cita.fechaHora;
         if (fechaHora) {
             const hasTimezone = /([+-]\d{2}:\d{2}|Z)$/i.test(fechaHora);
@@ -150,7 +151,24 @@ const updateCita = async (req, res) => {
                 return res.status(400).json({ message: "fechaHora inválida" });
             nuevaFechaInicio = parsed;
         }
-        const nuevaFechaFin = (0, date_fns_1.addMinutes)(nuevaFechaInicio, cita.duracionMinutos);
+        // === DURACIÓN ===
+        let nuevaDuracion = cita.duracionMinutos;
+        // si cambia servicio → recalcular duración y precio
+        if (servicioId) {
+            const servicio = await service_1.default.findByPk(servicioId);
+            if (!servicio)
+                return res.status(404).json({ message: "Servicio no encontrado" });
+            cita.servicioId = servicioId;
+            nuevaDuracion = servicio.duracion;
+            cita.precioFinal = servicio.precio;
+        }
+        // si manualmente se cambia duración
+        if (duracionMinutos) {
+            nuevaDuracion = Number(duracionMinutos);
+        }
+        // === NUEVA FECHA FIN ===
+        const nuevaFechaFin = (0, date_fns_1.addMinutes)(nuevaFechaInicio, nuevaDuracion);
+        // === DETECTAR CONFLICTOS ===
         const conflict = await citas_1.default.findOne({
             where: {
                 id: { [sequelize_1.Op.ne]: id },
@@ -163,6 +181,7 @@ const updateCita = async (req, res) => {
         if (conflict && conflict.estado !== "bloqueo") {
             return res.status(409).json({ message: "Conflicto: ya existe una cita en ese horario." });
         }
+        // === GUARDAR CAMBIOS ===
         cita.nombreCliente = nombreCliente ?? cita.nombreCliente;
         cita.emailCliente = emailCliente ?? cita.emailCliente;
         cita.whatsappCliente = whatsappCliente ?? cita.whatsappCliente;
@@ -171,8 +190,27 @@ const updateCita = async (req, res) => {
         cita.estado = estado ?? cita.estado;
         cita.fechaHora = nuevaFechaInicio;
         cita.fechaFin = nuevaFechaFin;
+        cita.duracionMinutos = nuevaDuracion;
         await cita.save();
-        return res.json({ message: "Cita actualizada", cita });
+        // === RECARGAR RELACIONES (ESTE ES EL FIX) ===
+        await cita.reload({
+            include: [
+                {
+                    model: service_1.default,
+                    as: "servicioCita",
+                    attributes: ["id", "nombre", "precio", "duracion"],
+                },
+                {
+                    model: user_1.User,
+                    as: "barberoCita",
+                    attributes: ["id", "nombre", "apellido", "avatar"],
+                },
+            ],
+        });
+        return res.json({
+            message: "Cita actualizada",
+            cita,
+        });
     }
     catch (error) {
         console.error("❌ ERROR updateCita:", error);
