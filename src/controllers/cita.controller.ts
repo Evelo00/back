@@ -179,11 +179,15 @@ export const updateCita = async (req: Request, res: Response) => {
       notas,
       fechaHora,
       estado,
+      servicioId,
+      duracionMinutos,
     } = req.body;
 
     const cita = await Cita.findByPk(id);
+
     if (!cita) return res.status(404).json({ message: "Cita no encontrada" });
 
+    // === FECHA DE INICIO ===
     let nuevaFechaInicio = cita.fechaHora;
 
     if (fechaHora) {
@@ -197,8 +201,29 @@ export const updateCita = async (req: Request, res: Response) => {
       nuevaFechaInicio = parsed;
     }
 
-    const nuevaFechaFin = addMinutes(nuevaFechaInicio, cita.duracionMinutos);
+    // === DURACIÓN ===
+    let nuevaDuracion = cita.duracionMinutos;
 
+    // si cambia servicio → recalcular duración y precio
+    if (servicioId) {
+      const servicio = await Service.findByPk(servicioId);
+      if (!servicio)
+        return res.status(404).json({ message: "Servicio no encontrado" });
+
+      cita.servicioId = servicioId;
+      nuevaDuracion = servicio.duracion;
+      cita.precioFinal = servicio.precio;
+    }
+
+    // si manualmente se cambia duración
+    if (duracionMinutos) {
+      nuevaDuracion = Number(duracionMinutos);
+    }
+
+    // === NUEVA FECHA FIN ===
+    const nuevaFechaFin = addMinutes(nuevaFechaInicio, nuevaDuracion);
+
+    // === DETECTAR CONFLICTOS ===
     const conflict = await Cita.findOne({
       where: {
         id: { [Op.ne]: id },
@@ -213,18 +238,41 @@ export const updateCita = async (req: Request, res: Response) => {
       return res.status(409).json({ message: "Conflicto: ya existe una cita en ese horario." });
     }
 
+    // === GUARDAR CAMBIOS ===
     cita.nombreCliente = nombreCliente ?? cita.nombreCliente;
     cita.emailCliente = emailCliente ?? cita.emailCliente;
     cita.whatsappCliente = whatsappCliente ?? cita.whatsappCliente;
     cita.precioFinal = precioFinal ?? cita.precioFinal;
     cita.notas = notas ?? cita.notas;
     cita.estado = estado ?? cita.estado;
+
     cita.fechaHora = nuevaFechaInicio;
     cita.fechaFin = nuevaFechaFin;
+    cita.duracionMinutos = nuevaDuracion;
 
     await cita.save();
 
-    return res.json({ message: "Cita actualizada", cita });
+    // === RECARGAR RELACIONES (ESTE ES EL FIX) ===
+    await cita.reload({
+      include: [
+        {
+          model: Service,
+          as: "servicioCita",
+          attributes: ["id", "nombre", "precio", "duracion"],
+        },
+        {
+          model: User,
+          as: "barberoCita",
+          attributes: ["id", "nombre", "apellido", "avatar"],
+        },
+      ],
+    });
+
+    return res.json({
+      message: "Cita actualizada",
+      cita,
+    });
+
   } catch (error: any) {
     console.error("❌ ERROR updateCita:", error);
     return res.status(500).json({
