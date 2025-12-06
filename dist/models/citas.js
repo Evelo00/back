@@ -24,7 +24,7 @@ Cita.init({
     },
     servicioId: {
         type: sequelize_1.DataTypes.UUID,
-        allowNull: false,
+        allowNull: true,
         field: "servicio_id",
     },
     fechaHora: {

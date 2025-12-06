@@ -6,6 +6,7 @@ import Venta from "./venta";
 import Service from "./service";
 import Cita from "./citas";       // ← OJO: usar export nombrado
 import { SolicitudCaja } from "./solicitud.model";
+import CitaServicio from "./citaServicio";
 
 Sede.hasMany(User, {
   foreignKey: "sedeId",
@@ -43,15 +44,6 @@ Cita.belongsTo(User, {
   as: "barberoCita",
 });
 
-Service.hasMany(Cita, {
-  foreignKey: "servicioId",
-  as: "citasServicio",
-});
-Cita.belongsTo(Service, {
-  foreignKey: "servicioId",
-  as: "servicioCita",
-});
-
 User.hasMany(SolicitudCaja, {
   foreignKey: "barberoId",
   as: "solicitudesCaja",
@@ -59,6 +51,26 @@ User.hasMany(SolicitudCaja, {
 SolicitudCaja.belongsTo(User, {
   foreignKey: "barberoId",
   as: "barberoSolicitud",
+});
+
+Cita.hasMany(CitaServicio, {
+  foreignKey: "citaId",
+  as: "servicios",
+});
+
+CitaServicio.belongsTo(Cita, {
+  foreignKey: "citaId",
+  as: "cita",
+});
+
+Service.hasMany(CitaServicio, {
+  foreignKey: "servicioId",
+  as: "citas",
+});
+
+CitaServicio.belongsTo(Service, {
+  foreignKey: "servicioId",
+  as: "servicio",
 });
 
 export {

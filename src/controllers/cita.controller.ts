@@ -3,6 +3,7 @@ import Cita from "../models/citas";
 import { User } from "../models/user";
 import { Op } from "sequelize";
 import Service from "../models/service";
+import CitaServicio from "../models/citaServicio";
 import { addMinutes, parseISO, format } from "date-fns";
 
 const BLOQUEO_SERVICE_ID = "00000000-0000-0000-0000-000000000999";
@@ -63,7 +64,6 @@ export const getAvailability = async (req: Request, res: Response) => {
       const hasConflict = citas.some((cita) => {
         const inicio = new Date(cita.fechaHora);
         const fin = cita.fechaFin ?? addMinutes(inicio, cita.duracionMinutos);
-
         return slotStartUTC < fin && slotEndUTC > inicio;
       });
 
@@ -82,52 +82,57 @@ export const createCita = async (req: Request, res: Response) => {
     const {
       clienteId,
       barberoId,
-      servicioId,
+      servicios,
       fechaHora,
       fechaFin,
-      precioFinal,
       duracionMinutos,
       nombreCliente,
       emailCliente,
       whatsappCliente,
       notas,
+      servicioId,
     } = req.body;
 
     if (!barberoId || !fechaHora)
       return res.status(400).json({ message: "Faltan campos requeridos" });
 
-    const isBloqueo = servicioId === BLOQUEO_SERVICE_ID;
-
     const inicio = new Date(fechaHora);
     if (isNaN(inicio.getTime()))
       return res.status(400).json({ message: "fechaHora inválida" });
 
-    let fin: Date | null = null;
-    let duration = 30;
+    const isBloqueo = servicioId === BLOQUEO_SERVICE_ID;
 
     if (isBloqueo) {
-      if (!fechaFin)
-        return res.status(400).json({ message: "fechaFin requerida para bloqueos" });
-
-      fin = new Date(fechaFin);
-      if (isNaN(fin.getTime()))
-        return res.status(400).json({ message: "fechaFin inválida" });
-
-      duration = duracionMinutos ?? 30;
+      const fin = new Date(fechaFin);
+      const nueva = await Cita.create({
+        clienteId: null,
+        barberoId,
+        servicioId: BLOQUEO_SERVICE_ID,
+        fechaHora: inicio,
+        fechaFin: fin,
+        duracionMinutos: duracionMinutos ?? 30,
+        estado: "bloqueo",
+        precioFinal: 0,
+        nombreCliente: null,
+        emailCliente: null,
+        whatsappCliente: null,
+        notas: notas ?? null,
+      });
+      return res.status(201).json(nueva);
     }
 
-    if (!isBloqueo) {
-      const servicio = await Service.findByPk(servicioId);
-      if (!servicio)
-        return res.status(404).json({ message: "Servicio no encontrado" });
-
-      duration = servicio.duracion;
-      fin = addMinutes(inicio, duration);
+    if (!Array.isArray(servicios) || servicios.length === 0) {
+      return res.status(400).json({ message: "Debe seleccionar al menos un servicio." });
     }
 
-    if (!fin) {
-      return res.status(500).json({ error: "Error interno al calcular fechaFin" });
-    }
+    const found = await Service.findAll({ where: { id: servicios } });
+    if (found.length !== servicios.length)
+      return res.status(400).json({ message: "Servicio inválido." });
+
+    const totalDuracion = found.reduce((sum, s) => sum + s.duracion, 0);
+    const totalPrecio = found.reduce((sum, s) => sum + s.precio, 0);
+
+    const fin = addMinutes(inicio, totalDuracion);
 
     const conflict = await Cita.findOne({
       where: {
@@ -138,181 +143,116 @@ export const createCita = async (req: Request, res: Response) => {
       },
     });
 
-    if (conflict && !isBloqueo && conflict.estado !== "bloqueo") {
-      return res.status(409).json({ message: "El barbero ya tiene un evento en ese horario." });
+    if (conflict) {
+      return res.status(409).json({
+        message: "El barbero ya tiene una cita o bloqueo en ese horario",
+      });
     }
 
-    const nueva = await Cita.create({
-      clienteId: isBloqueo ? null : clienteId,
+    const nuevaCita = await Cita.create({
+      clienteId,
       barberoId,
-      servicioId: isBloqueo ? BLOQUEO_SERVICE_ID : servicioId,
+      servicioId: null,
       fechaHora: inicio,
       fechaFin: fin,
-      duracionMinutos: duration,
-      estado: isBloqueo ? "bloqueo" : "confirmada",
-      precioFinal: isBloqueo ? 0 : precioFinal ?? 0,
-      nombreCliente: isBloqueo ? null : nombreCliente,
-      emailCliente: isBloqueo ? null : emailCliente,
-      whatsappCliente: isBloqueo ? null : whatsappCliente,
+      duracionMinutos: totalDuracion,
+      precioFinal: totalPrecio,
+      estado: "confirmada",
+      nombreCliente,
+      emailCliente,
+      whatsappCliente,
       notas: notas ?? null,
     });
 
-    return res.status(201).json(nueva);
+    await CitaServicio.bulkCreate(
+      found.map((s) => ({
+        citaId: nuevaCita.id,
+        servicioId: s.id,
+        precio: s.precio,
+        duracion: s.duracion,
+      }))
+    );
+
+    return res.status(201).json({
+      message: "Cita creada con múltiples servicios",
+      cita: nuevaCita,
+      servicios: found,
+    });
   } catch (error: any) {
     console.error("❌ ERROR createCita:", error);
-    return res.status(500).json({
-      error: "Error al crear cita",
-      details: error.message,
-    });
+    return res.status(500).json({ error: error.message });
   }
 };
 
 export const updateCita = async (req: Request, res: Response) => {
   try {
-    const id = req.params.id;
-
+    const { id } = req.params;
     const {
       nombreCliente,
       emailCliente,
       whatsappCliente,
-      precioFinal,
-      notas,
       fechaHora,
-      estado,
-      servicioId,
+      notas,
+      precioFinal,
       duracionMinutos,
+      servicios = []
     } = req.body;
 
-    const cita = await Cita.findByPk(id);
+    const cita = await Cita.findByPk(id, {
+      include: [{ model: CitaServicio, as: "servicios" }],
+    });
 
     if (!cita) return res.status(404).json({ message: "Cita no encontrada" });
 
-    // === FECHA DE INICIO ===
-    let nuevaFechaInicio = cita.fechaHora;
-
-    if (fechaHora) {
-      const hasTimezone = /([+-]\d{2}:\d{2}|Z)$/i.test(fechaHora);
-      const fixed = hasTimezone ? fechaHora : fechaHora + "-05:00";
-
-      const parsed = new Date(fixed);
-      if (isNaN(parsed.getTime()))
-        return res.status(400).json({ message: "fechaHora inválida" });
-
-      nuevaFechaInicio = parsed;
-    }
-
-    // === DURACIÓN ===
-    let nuevaDuracion = cita.duracionMinutos;
-
-    // si cambia servicio → recalcular duración y precio
-    if (servicioId) {
-      const servicio = await Service.findByPk(servicioId);
-      if (!servicio)
-        return res.status(404).json({ message: "Servicio no encontrado" });
-
-      cita.servicioId = servicioId;
-      nuevaDuracion = servicio.duracion;
-      cita.precioFinal = servicio.precio;
-    }
-
-    // si manualmente se cambia duración
-    if (duracionMinutos) {
-      nuevaDuracion = Number(duracionMinutos);
-    }
-
-    // === NUEVA FECHA FIN ===
-    const nuevaFechaFin = addMinutes(nuevaFechaInicio, nuevaDuracion);
-
-    // === DETECTAR CONFLICTOS ===
-    const conflict = await Cita.findOne({
-      where: {
-        id: { [Op.ne]: id },
-        barberoId: cita.barberoId,
-        fechaHora: { [Op.lt]: nuevaFechaFin },
-        fechaFin: { [Op.gt]: nuevaFechaInicio },
-        estado: { [Op.in]: ["pendiente", "confirmada", "bloqueo"] },
-      },
+    await cita.update({
+      nombreCliente,
+      emailCliente,
+      whatsappCliente,
+      fechaHora,
+      notas,
+      precioFinal,
+      duracionMinutos
     });
 
-    if (conflict && conflict.estado !== "bloqueo") {
-      return res.status(409).json({ message: "Conflicto: ya existe una cita en ese horario." });
+    await CitaServicio.destroy({ where: { citaId: id } });
+
+    for (const s of servicios) {
+      if (!s.servicioId)
+        throw new Error("Servicio recibido sin servicioId");
+
+      await CitaServicio.create({
+        citaId: id,
+        servicioId: s.servicioId,
+        precio: Number(s.precio),
+        duracion: Number(s.duracion),
+      });
     }
-
-    // === GUARDAR CAMBIOS ===
-    cita.nombreCliente = nombreCliente ?? cita.nombreCliente;
-    cita.emailCliente = emailCliente ?? cita.emailCliente;
-    cita.whatsappCliente = whatsappCliente ?? cita.whatsappCliente;
-    cita.precioFinal = precioFinal ?? cita.precioFinal;
-    cita.notas = notas ?? cita.notas;
-    cita.estado = estado ?? cita.estado;
-
-    cita.fechaHora = nuevaFechaInicio;
-    cita.fechaFin = nuevaFechaFin;
-    cita.duracionMinutos = nuevaDuracion;
-
-    await cita.save();
-
-    // === RECARGAR RELACIONES (ESTE ES EL FIX) ===
-    await cita.reload({
+    const updated = await Cita.findByPk(id, {
       include: [
         {
-          model: Service,
-          as: "servicioCita",
-          attributes: ["id", "nombre", "precio", "duracion"],
-        },
-        {
-          model: User,
-          as: "barberoCita",
-          attributes: ["id", "nombre", "apellido", "avatar"],
+          model: CitaServicio,
+          as: "servicios",
+          include: [{ model: Service, as: "servicio" }],
         },
       ],
     });
 
-    return res.json({
-      message: "Cita actualizada",
-      cita,
-    });
-
-  } catch (error: any) {
-    console.error("❌ ERROR updateCita:", error);
-    return res.status(500).json({
-      error: "Error actualizando cita",
-      details: error.message,
-    });
+    return res.json({ message: "Cita actualizada", cita: updated });
+  } catch (err) {
+    console.error("❌ Error UPDATE CITA:", err);
+    res.status(500).json({ error: err instanceof Error ? err.message : "Error desconocido" });
   }
 };
 
-export const deleteCita = async (req: Request, res: Response) => {
-  try {
-    const id = req.params.id;
-
-    const cita = await Cita.findByPk(id);
-    if (!cita)
-      return res.status(404).json({ message: "Cita no encontrada" });
-
-    await cita.destroy();
-
-    return res.json({
-      message: "Cita eliminada correctamente",
-      id,
-    });
-  } catch (error: any) {
-    console.error("❌ ERROR eliminando cita:", error);
-    return res.status(500).json({
-      error: "Error eliminando cita",
-      details: error.message,
-    });
-  }
-};
 
 export const getCitas = async (_req: Request, res: Response) => {
   try {
     const citas = await Cita.findAll({
       include: [
         {
-          model: Service,
-          as: "servicioCita",
-          attributes: ["id", "nombre", "precio", "duracion"],
+          model: CitaServicio,
+          as: "servicios",
+          include: [{ model: Service, as: "servicio" }],
         },
         {
           model: User,
@@ -324,7 +264,7 @@ export const getCitas = async (_req: Request, res: Response) => {
     });
 
     return res.json(citas);
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
     return res.status(500).json({ message: "Error obteniendo citas" });
   }
@@ -332,11 +272,47 @@ export const getCitas = async (_req: Request, res: Response) => {
 
 export const getCitaById = async (req: Request, res: Response) => {
   try {
-    const cita = await Cita.findByPk(req.params.id);
+    const cita = await Cita.findByPk(req.params.id, {
+      include: [
+        {
+          model: CitaServicio,
+          as: "servicios",
+          include: [{ model: Service, as: "servicio" }],
+        },
+        {
+          model: User,
+          as: "barberoCita",
+          attributes: ["id", "nombre", "apellido", "avatar"],
+        },
+      ],
+    });
+
     if (!cita) return res.status(404).json({ message: "Cita no encontrada" });
 
     return res.json(cita);
   } catch (err) {
     return res.status(500).json({ message: "Error obteniendo cita" });
+  }
+};
+
+export const deleteCita = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id;
+
+    await CitaServicio.destroy({ where: { citaId: id } });
+
+    const cita = await Cita.findByPk(id);
+    if (!cita)
+      return res.status(404).json({ message: "Cita no encontrada" });
+
+    await cita.destroy();
+
+    return res.json({ message: "Cita eliminada correctamente", id });
+  } catch (error: any) {
+    console.error("❌ ERROR eliminando cita:", error);
+    return res.status(500).json({
+      error: "Error eliminando cita",
+      details: error.message,
+    });
   }
 };

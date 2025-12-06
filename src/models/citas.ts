@@ -14,7 +14,7 @@ export class Cita extends Model<
   declare id: CreationOptional<string>;
   declare clienteId: string | null;
   declare barberoId: string;
-  declare servicioId: string;
+  declare servicioId: string | null;
   declare fechaHora: Date;
   declare fechaFin: Date;
   declare estado: "pendiente" | "confirmada" | "cancelada" | "completada" | "bloqueo";
@@ -48,7 +48,7 @@ Cita.init(
     },
     servicioId: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
       field: "servicio_id",
     },
     fechaHora: {
