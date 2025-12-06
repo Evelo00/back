@@ -204,22 +204,27 @@ export const updateCita = async (req: Request, res: Response) => {
 
     if (!cita) return res.status(404).json({ message: "Cita no encontrada" });
 
+    const inicio = new Date(fechaHora);
+    if (isNaN(inicio.getTime())) {
+      return res.status(400).json({ message: "fechaHora inválida" });
+    }
+
+    const fin = addMinutes(inicio, Number(duracionMinutos));
+
     await cita.update({
       nombreCliente,
       emailCliente,
       whatsappCliente,
-      fechaHora,
+      fechaHora: inicio,
+      fechaFin: fin,
       notas,
       precioFinal,
-      duracionMinutos
+      duracionMinutos: Number(duracionMinutos),
     });
 
     await CitaServicio.destroy({ where: { citaId: id } });
 
     for (const s of servicios) {
-      if (!s.servicioId)
-        throw new Error("Servicio recibido sin servicioId");
-
       await CitaServicio.create({
         citaId: id,
         servicioId: s.servicioId,
@@ -227,6 +232,7 @@ export const updateCita = async (req: Request, res: Response) => {
         duracion: Number(s.duracion),
       });
     }
+
     const updated = await Cita.findByPk(id, {
       include: [
         {
