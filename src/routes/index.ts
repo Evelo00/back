@@ -4,6 +4,7 @@ import userRoutes from "./user.routes";
 import sedeRoutes from "./sede.routes";
 import serviceRoutes from "./service.routes";
 import citaRoutes from "./cita.routes";
+import clientesRoutes from "./clientes.routes";
 
 import superadminRoutes from "./superAdmin.routes";
 
@@ -15,6 +16,7 @@ router.use("/users", userRoutes);
 router.use("/services", serviceRoutes);
 router.use("/sedes", sedeRoutes);
 router.use("/citas", citaRoutes);
+router.use("/clientes", clientesRoutes);
 
 router.use("/superadmin", superadminRoutes);
 

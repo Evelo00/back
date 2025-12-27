@@ -70,6 +70,11 @@ Cita.init({
         allowNull: true,
         field: "whatsapp_cliente",
     },
+    sedeId: {
+        type: sequelize_1.DataTypes.UUID,
+        allowNull: false,
+        field: "sede_id",
+    },
     createdAt: { type: sequelize_1.DataTypes.DATE, field: "created_at" },
     updatedAt: { type: sequelize_1.DataTypes.DATE, field: "updated_at" },
     deletedAt: { type: sequelize_1.DataTypes.DATE, field: "deleted_at" },

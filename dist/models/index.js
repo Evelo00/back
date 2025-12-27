@@ -19,6 +19,7 @@ exports.Cita = citas_1.default;
 const solicitud_model_1 = require("./solicitud.model");
 Object.defineProperty(exports, "SolicitudCaja", { enumerable: true, get: function () { return solicitud_model_1.SolicitudCaja; } });
 const citaServicio_1 = __importDefault(require("./citaServicio"));
+const cliente_1 = __importDefault(require("./cliente"));
 sede_1.Sede.hasMany(user_1.User, {
     foreignKey: "sedeId",
     as: "usuarios",
@@ -74,4 +75,12 @@ service_1.default.hasMany(citaServicio_1.default, {
 citaServicio_1.default.belongsTo(service_1.default, {
     foreignKey: "servicioId",
     as: "servicio",
+});
+cliente_1.default.hasMany(citas_1.default, {
+    foreignKey: "clienteId",
+    as: "citasCliente",
+});
+citas_1.default.belongsTo(cliente_1.default, {
+    foreignKey: "clienteId",
+    as: "cliente",
 });

@@ -4,24 +4,30 @@ import bcrypt from "bcryptjs";
 
 export const getUsers = async (req: Request, res: Response) => {
   try {
-    // Leer rol desde query string: ?rol=barbero
-    const rolFilter = req.query.rol as string | undefined;
+    const { rol, sedeId } = req.query;
 
-    const whereClause: any = {};
-    if (rolFilter) {
-      whereClause.rol = rolFilter;
-      whereClause.activo = true; // solo activos
+    const whereClause: any = {
+      activo: true,
+    };
+
+    if (rol) {
+      whereClause.rol = rol;
+    }
+
+    if (sedeId) {
+      whereClause.sedeId = sedeId;
     }
 
     const users = await User.findAll({
       attributes: { exclude: ["passwordHash"] },
       where: whereClause,
-      order: [["nombre", "ASC"]],
+      order: [["silla", "ASC"]],
     });
 
     res.json(users);
   } catch (error) {
-    res.status(500).json({ message: "Error al obtener usuarios", error });
+    console.error("❌ Error getUsers:", error);
+    res.status(500).json({ message: "Error al obtener usuarios" });
   }
 };
 
@@ -115,20 +121,30 @@ export const deleteUser = async (req: Request, res: Response) => {
 
 export const getPublicBarbers = async (req: Request, res: Response) => {
   try {
-    const backendURL = (process.env.BACKEND_URL || "http://localhost:4000").replace(/\/$/, "");
+    const backendURL = (process.env.BACKEND_URL || "http://localhost:4000")
+      .replace(/\/$/, "");
+
+    const { sedeId } = req.query;
+
+    const whereClause: any = {
+      rol: "barbero",
+      activo: true,
+    };
+
+    // 🔐 filtro multisede correcto
+    if (sedeId) {
+      whereClause.sedeId = sedeId;
+    }
 
     const barbers = await User.findAll({
       attributes: ["id", "nombre", "apellido", "avatar", "silla", "telefono"],
-      where: { rol: "barbero", activo: true },
+      where: whereClause,
       order: [["silla", "ASC"]],
     });
 
-    if (!barbers.length) {
-      return res.status(200).json([]);
-    }
-
     const mapped = barbers.map((barber) => {
       let avatar = barber.avatar;
+
       if (avatar && !avatar.startsWith("http")) {
         avatar = `${backendURL}/public/${avatar.replace(/^\/+/, "")}`;
       }
@@ -150,7 +166,6 @@ export const getPublicBarbers = async (req: Request, res: Response) => {
     console.error("❌ ERROR getPublicBarbers:", error);
     return res.status(500).json({
       message: "Error al obtener barberos públicos",
-      error: error instanceof Error ? error.message : error,
     });
   }
 };

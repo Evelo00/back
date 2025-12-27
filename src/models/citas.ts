@@ -27,6 +27,7 @@ export class Cita extends Model<
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
   declare deletedAt: Date | null;
+  declare sedeId: string;
 }
 
 Cita.init(
@@ -93,6 +94,11 @@ Cita.init(
       type: DataTypes.STRING,
       allowNull: true,
       field: "whatsapp_cliente",
+    },
+    sedeId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      field: "sede_id",
     },
     createdAt: { type: DataTypes.DATE, field: "created_at" },
     updatedAt: { type: DataTypes.DATE, field: "updated_at" },
