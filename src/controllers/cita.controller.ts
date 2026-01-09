@@ -44,11 +44,8 @@ export const getAvailability = async (req: Request, res: Response) => {
 
     const duration = parseInt(serviceDuration as string, 10);
 
-    const startLocal = new Date(`${dateStr}T00:00:00`);
-    const endLocal = new Date(`${dateStr}T23:59:59`);
-
-    const startUTC = bogotaToUTC(startLocal);
-    const endUTC = bogotaToUTC(endLocal);
+    const startUTC = new Date(`${dateStr}T00:00:00Z`);
+    const endUTC = new Date(`${dateStr}T23:59:59Z`);
 
     const citas = await Cita.findAll({
       where: {
@@ -65,11 +62,11 @@ export const getAvailability = async (req: Request, res: Response) => {
 
     for (const slot of allSlots) {
       const slotLocal = new Date(`${dateStr}T${slot}:00`);
-      const slotStartUTC = bogotaToUTC(slotLocal);
+      const slotStartUTC = new Date(`${dateStr}T${slot}:00Z`);
       const slotEndUTC = addMinutes(slotStartUTC, duration);
+      const cierreUTC = new Date(`${dateStr}T${realEnd}:00Z`);
       const [endH, endM] = realEnd.split(":").map(Number);
       const cierreLocal = new Date(`${dateStr}T${realEnd}:00`);
-      const cierreUTC = bogotaToUTC(cierreLocal);
 
       if (slotEndUTC > cierreUTC) continue;
 
@@ -90,45 +87,6 @@ export const getAvailability = async (req: Request, res: Response) => {
   }
 };
 
-// export const buscarClientes = async (req: Request, res: Response) => {
-//   try {
-//     const { q } = req.query;
-
-//     if (!q || String(q).trim().length < 2) {
-//       return res.json([]);
-//     }
-
-//     const term = String(q).trim();
-
-//     const clientes = await Cita.findAll({
-//       attributes: [
-//         "nombreCliente",
-//         "emailCliente",
-//         "whatsappCliente",
-//       ],
-//       where: {
-//         whatsappCliente: { [Op.not]: null },
-//         nombreCliente: { [Op.not]: null },
-//         [Op.or]: [
-//           { nombreCliente: { [Op.iLike]: `%${term}%` } },
-//           { whatsappCliente: { [Op.iLike]: `%${term}%` } },
-//         ],
-//       },
-//       group: [
-//         "Cita.whatsapp_cliente",
-//         "Cita.nombre_cliente",
-//         "Cita.email_cliente",
-//       ],
-//       limit: 10,
-//       raw: true,
-//     });
-
-//     return res.json(clientes);
-//   } catch (error) {
-//     console.error("❌ ERROR buscarClientes:", error);
-//     return res.status(500).json({ message: "Error buscando clientes" });
-//   }
-// };
 export const buscarClientes = async (req: Request, res: Response) => {
   try {
     const q = String(req.query.q || "").trim();
@@ -235,7 +193,7 @@ export const createCita = async (req: Request, res: Response) => {
         return res.status(400).json({ message: "fechaFin requerida para bloqueo" });
       }
 
-      const finBloqueo = bogotaToUTC(new Date(fechaFin));
+      const finBloqueo = new Date(fechaFin);
 
       const bloqueo = await Cita.create({
         sedeId,
@@ -359,7 +317,13 @@ export const updateCita = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "fechaHora inválida" });
     }
 
-    const fin = addMinutes(inicio, Number(duracionMinutos));
+    const totalDuracion = servicios.reduce(
+      (sum: number, s: any) => sum + Number(s.duracion),
+      0
+    );
+
+    const fin = addMinutes(inicio, totalDuracion);
+
 
     await cita.update({
       nombreCliente,
@@ -409,16 +373,16 @@ export const getCitas = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Debe enviar la fecha de la semana" });
     }
 
-    const baseLocal = new Date(`${week}T00:00:00`);
+    const baseBogota = new Date(`${week}T00:00:00`);
 
-    const startLocal = startOfWeek(baseLocal, { weekStartsOn: 1 });
-    startLocal.setHours(0, 0, 0, 0);
+    const startBogota = startOfWeek(baseBogota, { weekStartsOn: 1 });
+    startBogota.setHours(0, 0, 0, 0);
 
-    const endLocal = endOfWeek(baseLocal, { weekStartsOn: 1 });
-    endLocal.setHours(23, 59, 59, 999);
+    const endBogota = endOfWeek(baseBogota, { weekStartsOn: 1 });
+    endBogota.setHours(23, 59, 59, 999);
 
-    const startWeek = bogotaToUTC(startLocal);
-    const endWeek = bogotaToUTC(endLocal);
+    const startWeek = bogotaToUTC(startBogota);
+    const endWeek = bogotaToUTC(endBogota);
 
 
     const includeBarbero: any = {
@@ -437,6 +401,7 @@ export const getCitas = async (req: Request, res: Response) => {
         "estado",
         "barberoId",
         "sedeId",
+        "duracionMinutos",
       ],
       where: {
         fechaHora: {
