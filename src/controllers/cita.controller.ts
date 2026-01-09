@@ -6,7 +6,8 @@ import { Op, fn, col, literal } from "sequelize";
 import Service from "../models/service";
 import CitaServicio from "../models/citaServicio";
 import { getDaySchedule } from "../utils/schedule";
-import { addMinutes, parseISO, format } from "date-fns";
+import { bogotaToUTC, utcToBogota } from "../utils/date";
+import { addMinutes, parseISO, format, startOfWeek, endOfWeek } from "date-fns";
 interface ClienteBusqueda {
   id?: string;
   nombre: string;
@@ -39,12 +40,15 @@ export const getAvailability = async (req: Request, res: Response) => {
     }
 
     const dateStr = String(date);
-    const dateObj = new Date(`${dateStr}T00:00:00-05:00`);
+    const dateObj = new Date(`${dateStr}T00:00:00`);
 
     const duration = parseInt(serviceDuration as string, 10);
 
-    const startUTC = new Date(`${dateStr}T00:00:00-05:00`);
-    const endUTC = new Date(`${dateStr}T23:59:59-05:00`);
+    const startLocal = new Date(`${dateStr}T00:00:00`);
+    const endLocal = new Date(`${dateStr}T23:59:59`);
+
+    const startUTC = bogotaToUTC(startLocal);
+    const endUTC = bogotaToUTC(endLocal);
 
     const citas = await Cita.findAll({
       where: {
@@ -60,13 +64,15 @@ export const getAvailability = async (req: Request, res: Response) => {
     const availableSlots: string[] = [];
 
     for (const slot of allSlots) {
-      const slotStartUTC = new Date(`${dateStr}T${slot}:00-05:00`);
+      const slotLocal = new Date(`${dateStr}T${slot}:00`);
+      const slotStartUTC = bogotaToUTC(slotLocal);
       const slotEndUTC = addMinutes(slotStartUTC, duration);
       const [endH, endM] = realEnd.split(":").map(Number);
-      const cierre = new Date(slotStartUTC);
-      cierre.setHours(endH, endM, 0, 0);
+      const cierreLocal = new Date(`${dateStr}T${realEnd}:00`);
+      const cierreUTC = bogotaToUTC(cierreLocal);
 
-      if (slotEndUTC > cierre) continue;
+      if (slotEndUTC > cierreUTC) continue;
+
 
       const hasConflict = citas.some((cita) => {
         const inicio = new Date(cita.fechaHora);
@@ -229,7 +235,7 @@ export const createCita = async (req: Request, res: Response) => {
         return res.status(400).json({ message: "fechaFin requerida para bloqueo" });
       }
 
-      const finBloqueo = new Date(fechaFin);
+      const finBloqueo = bogotaToUTC(new Date(fechaFin));
 
       const bloqueo = await Cita.create({
         sedeId,
@@ -397,7 +403,23 @@ export const updateCita = async (req: Request, res: Response) => {
 
 export const getCitas = async (req: Request, res: Response) => {
   try {
-    const { sedeId } = req.query;
+    const { sedeId, week } = req.query;
+
+    if (!week) {
+      return res.status(400).json({ message: "Debe enviar la fecha de la semana" });
+    }
+
+    const baseLocal = new Date(`${week}T00:00:00`);
+
+    const startLocal = startOfWeek(baseLocal, { weekStartsOn: 1 });
+    startLocal.setHours(0, 0, 0, 0);
+
+    const endLocal = endOfWeek(baseLocal, { weekStartsOn: 1 });
+    endLocal.setHours(23, 59, 59, 999);
+
+    const startWeek = bogotaToUTC(startLocal);
+    const endWeek = bogotaToUTC(endLocal);
+
 
     const includeBarbero: any = {
       model: User,
@@ -405,27 +427,28 @@ export const getCitas = async (req: Request, res: Response) => {
       attributes: ["id", "nombre", "apellido", "avatar", "sedeId"],
     };
 
-    // 🔥 SOLO filtra si sedeId viene
-    if (sedeId) {
-      includeBarbero.where = {
-        sedeId: sedeId,
-      };
-    }
+    if (sedeId) includeBarbero.where = { sedeId };
 
     const citas = await Cita.findAll({
-      include: [
-        {
-          model: CitaServicio,
-          as: "servicios",
-          include: [{ model: Service, as: "servicio" }],
-        },
-        includeBarbero,
+      attributes: [
+        "id",
+        "fechaHora",
+        "fechaFin",
+        "estado",
+        "barberoId",
+        "sedeId",
       ],
+      where: {
+        fechaHora: {
+          [Op.between]: [startWeek, endWeek],
+        },
+      },
+      include: [includeBarbero],
       order: [["fechaHora", "ASC"]],
     });
 
     return res.json(citas);
-  } catch (err: any) {
+  } catch (err) {
     console.error("❌ ERROR getCitas:", err);
     return res.status(500).json({ message: "Error obteniendo citas" });
   }

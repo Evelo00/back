@@ -11,6 +11,7 @@ const sequelize_1 = require("sequelize");
 const service_1 = __importDefault(require("../models/service"));
 const citaServicio_1 = __importDefault(require("../models/citaServicio"));
 const schedule_1 = require("../utils/schedule");
+const date_1 = require("../utils/date");
 const date_fns_1 = require("date-fns");
 const BLOQUEO_SERVICE_ID = "00000000-0000-0000-0000-000000000999";
 const generateTimeSlots = (start, end, interval = 15) => {
@@ -30,10 +31,12 @@ const getAvailability = async (req, res) => {
             return res.status(400).json({ message: "Faltan parámetros requeridos" });
         }
         const dateStr = String(date);
-        const dateObj = new Date(`${dateStr}T00:00:00-05:00`);
+        const dateObj = new Date(`${dateStr}T00:00:00`);
         const duration = parseInt(serviceDuration, 10);
-        const startUTC = new Date(`${dateStr}T00:00:00-05:00`);
-        const endUTC = new Date(`${dateStr}T23:59:59-05:00`);
+        const startLocal = new Date(`${dateStr}T00:00:00`);
+        const endLocal = new Date(`${dateStr}T23:59:59`);
+        const startUTC = (0, date_1.bogotaToUTC)(startLocal);
+        const endUTC = (0, date_1.bogotaToUTC)(endLocal);
         const citas = await citas_1.default.findAll({
             where: {
                 barberoId: String(barberoId),
@@ -45,12 +48,13 @@ const getAvailability = async (req, res) => {
         const allSlots = generateTimeSlots(start, lastSlot);
         const availableSlots = [];
         for (const slot of allSlots) {
-            const slotStartUTC = new Date(`${dateStr}T${slot}:00-05:00`);
+            const slotLocal = new Date(`${dateStr}T${slot}:00`);
+            const slotStartUTC = (0, date_1.bogotaToUTC)(slotLocal);
             const slotEndUTC = (0, date_fns_1.addMinutes)(slotStartUTC, duration);
             const [endH, endM] = realEnd.split(":").map(Number);
-            const cierre = new Date(slotStartUTC);
-            cierre.setHours(endH, endM, 0, 0);
-            if (slotEndUTC > cierre)
+            const cierreLocal = new Date(`${dateStr}T${realEnd}:00`);
+            const cierreUTC = (0, date_1.bogotaToUTC)(cierreLocal);
+            if (slotEndUTC > cierreUTC)
                 continue;
             const hasConflict = citas.some((cita) => {
                 const inicio = new Date(cita.fechaHora);
@@ -182,7 +186,7 @@ const createCita = async (req, res) => {
             if (!fechaFin) {
                 return res.status(400).json({ message: "fechaFin requerida para bloqueo" });
             }
-            const finBloqueo = new Date(fechaFin);
+            const finBloqueo = (0, date_1.bogotaToUTC)(new Date(fechaFin));
             const bloqueo = await citas_1.default.create({
                 sedeId,
                 clienteId: null,
@@ -312,27 +316,39 @@ const updateCita = async (req, res) => {
 exports.updateCita = updateCita;
 const getCitas = async (req, res) => {
     try {
-        const { sedeId } = req.query;
+        const { sedeId, week } = req.query;
+        if (!week) {
+            return res.status(400).json({ message: "Debe enviar la fecha de la semana" });
+        }
+        const baseLocal = new Date(`${week}T00:00:00`);
+        const startLocal = (0, date_fns_1.startOfWeek)(baseLocal, { weekStartsOn: 1 });
+        startLocal.setHours(0, 0, 0, 0);
+        const endLocal = (0, date_fns_1.endOfWeek)(baseLocal, { weekStartsOn: 1 });
+        endLocal.setHours(23, 59, 59, 999);
+        const startWeek = (0, date_1.bogotaToUTC)(startLocal);
+        const endWeek = (0, date_1.bogotaToUTC)(endLocal);
         const includeBarbero = {
             model: user_1.User,
             as: "barberoCita",
             attributes: ["id", "nombre", "apellido", "avatar", "sedeId"],
         };
-        // 🔥 SOLO filtra si sedeId viene
-        if (sedeId) {
-            includeBarbero.where = {
-                sedeId: sedeId,
-            };
-        }
+        if (sedeId)
+            includeBarbero.where = { sedeId };
         const citas = await citas_1.default.findAll({
-            include: [
-                {
-                    model: citaServicio_1.default,
-                    as: "servicios",
-                    include: [{ model: service_1.default, as: "servicio" }],
-                },
-                includeBarbero,
+            attributes: [
+                "id",
+                "fechaHora",
+                "fechaFin",
+                "estado",
+                "barberoId",
+                "sedeId",
             ],
+            where: {
+                fechaHora: {
+                    [sequelize_1.Op.between]: [startWeek, endWeek],
+                },
+            },
+            include: [includeBarbero],
             order: [["fechaHora", "ASC"]],
         });
         return res.json(citas);
