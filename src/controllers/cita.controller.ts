@@ -5,6 +5,7 @@ import { User } from "../models/user";
 import { Op, fn, col, literal } from "sequelize";
 import Service from "../models/service";
 import CitaServicio from "../models/citaServicio";
+import { getDaySchedule } from "../utils/schedule";
 import { addMinutes, parseISO, format } from "date-fns";
 interface ClienteBusqueda {
   id?: string;
@@ -15,18 +16,6 @@ interface ClienteBusqueda {
 }
 
 const BLOQUEO_SERVICE_ID = "00000000-0000-0000-0000-000000000999";
-
-
-function getDaySchedule(dateStr: string) {
-  const [year, month, dayNum] = dateStr.split("-").map(Number);
-  const date = new Date(year, month - 1, dayNum);
-  const day = date.getDay();
-
-  if (day === 0) return { start: "10:00", last: "18:30" };
-  if (day >= 1 && day <= 4) return { start: "08:00", last: "19:30" };
-  if (day === 5 || day === 6) return { start: "08:00", last: "20:30" };
-  return { start: "08:00", last: "19:30" };
-}
 
 const generateTimeSlots = (start: string, end: string, interval = 15): string[] => {
   const slots: string[] = [];
@@ -50,6 +39,8 @@ export const getAvailability = async (req: Request, res: Response) => {
     }
 
     const dateStr = String(date);
+    const dateObj = new Date(`${dateStr}T00:00:00-05:00`);
+
     const duration = parseInt(serviceDuration as string, 10);
 
     const startUTC = new Date(`${dateStr}T00:00:00-05:00`);
@@ -63,14 +54,19 @@ export const getAvailability = async (req: Request, res: Response) => {
       },
     });
 
-    const { start, last } = getDaySchedule(dateStr);
-    const allSlots = generateTimeSlots(start, last);
+    const { start, lastSlot, realEnd } = getDaySchedule(dateObj);
+    const allSlots = generateTimeSlots(start, lastSlot);
 
     const availableSlots: string[] = [];
 
     for (const slot of allSlots) {
       const slotStartUTC = new Date(`${dateStr}T${slot}:00-05:00`);
       const slotEndUTC = addMinutes(slotStartUTC, duration);
+      const [endH, endM] = realEnd.split(":").map(Number);
+      const cierre = new Date(slotStartUTC);
+      cierre.setHours(endH, endM, 0, 0);
+
+      if (slotEndUTC > cierre) continue;
 
       const hasConflict = citas.some((cita) => {
         const inicio = new Date(cita.fechaHora);

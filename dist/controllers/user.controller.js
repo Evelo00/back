@@ -10,13 +10,13 @@ const getUsers = async (req, res) => {
     try {
         const { rol, sedeId } = req.query;
         const whereClause = {
-            activo: true, // siempre activos
+            activo: true,
         };
         if (rol) {
             whereClause.rol = rol;
         }
         if (sedeId) {
-            whereClause.sedeId = sedeId; // ✅ atributo del modelo
+            whereClause.sedeId = sedeId;
         }
         const users = await models_1.User.findAll({
             attributes: { exclude: ["passwordHash"] },
