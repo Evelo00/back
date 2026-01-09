@@ -402,13 +402,27 @@ export const getCitas = async (req: Request, res: Response) => {
         "barberoId",
         "sedeId",
         "duracionMinutos",
+        "nombreCliente",
       ],
       where: {
         fechaHora: {
           [Op.between]: [startWeek, endWeek],
         },
       },
-      include: [includeBarbero],
+      include: [
+        includeBarbero,
+        {
+          model: CitaServicio,
+          as: "servicios",
+          include: [
+            {
+              model: Service,
+              as: "servicio",
+              attributes: ["id", "nombre", "precio", "duracion"],
+            },
+          ],
+        },
+      ],
       order: [["fechaHora", "ASC"]],
     });
 

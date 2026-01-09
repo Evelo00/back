@@ -307,13 +307,27 @@ const getCitas = async (req, res) => {
                 "barberoId",
                 "sedeId",
                 "duracionMinutos",
+                "nombreCliente",
             ],
             where: {
                 fechaHora: {
                     [sequelize_1.Op.between]: [startWeek, endWeek],
                 },
             },
-            include: [includeBarbero],
+            include: [
+                includeBarbero,
+                {
+                    model: citaServicio_1.default,
+                    as: "servicios",
+                    include: [
+                        {
+                            model: service_1.default,
+                            as: "servicio",
+                            attributes: ["id", "nombre", "precio", "duracion"],
+                        },
+                    ],
+                },
+            ],
             order: [["fechaHora", "ASC"]],
         });
         return res.json(citas);
