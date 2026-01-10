@@ -251,37 +251,67 @@ exports.createCita = createCita;
 const updateCita = async (req, res) => {
     try {
         const id = req.params.id;
-        const { nombreCliente, emailCliente, whatsappCliente, fechaHora, notas, precioFinal, duracionMinutos, servicios = [] } = req.body;
+        const { nombreCliente, emailCliente, whatsappCliente, fechaHora, notas, precioFinal, servicios = [], } = req.body;
+        /* =========================
+           BUSCAR CITA
+        ========================= */
         const cita = await citas_1.default.findByPk(id, {
             include: [{ model: citaServicio_1.default, as: "servicios" }],
         });
-        if (!cita)
+        if (!cita) {
             return res.status(404).json({ message: "Cita no encontrada" });
+        }
+        /* =========================
+           FECHA INICIO
+        ========================= */
         const inicio = new Date(fechaHora);
         if (isNaN(inicio.getTime())) {
             return res.status(400).json({ message: "fechaHora inválida" });
         }
-        const totalDuracion = servicios.reduce((sum, s) => sum + Number(s.duracion), 0);
-        const fin = (0, date_fns_1.addMinutes)(inicio, totalDuracion);
-        await cita.update({
-            nombreCliente,
-            emailCliente,
-            whatsappCliente,
-            fechaHora: inicio,
-            fechaFin: fin,
-            notas,
-            precioFinal,
-            duracionMinutos: Number(duracionMinutos),
-        });
-        await citaServicio_1.default.destroy({ where: { citaId: id } });
-        for (const s of servicios) {
-            await citaServicio_1.default.create({
-                citaId: id,
-                servicioId: s.servicioId,
-                precio: Number(s.precio),
-                duracion: Number(s.duracion),
+        /* =========================
+           VALIDAR SERVICIOS
+        ========================= */
+        if (!Array.isArray(servicios) || servicios.length === 0) {
+            return res.status(400).json({
+                message: "La cita debe tener al menos un servicio",
             });
         }
+        /* =========================
+           DURACIÓN REAL (ÚNICA FUENTE)
+        ========================= */
+        const totalDuracion = servicios.reduce((sum, s) => sum + Number(s.duracion), 0);
+        if (totalDuracion <= 0) {
+            return res.status(400).json({
+                message: "Duración total inválida",
+            });
+        }
+        const fin = (0, date_fns_1.addMinutes)(inicio, totalDuracion);
+        /* =========================
+           UPDATE CITA
+        ========================= */
+        await cita.update({
+            nombreCliente: nombreCliente?.trim() || null,
+            emailCliente: emailCliente?.trim() || null,
+            whatsappCliente: whatsappCliente?.trim() || null,
+            fechaHora: inicio,
+            fechaFin: fin,
+            duracionMinutos: totalDuracion, // 🔒 clave
+            notas: notas ?? null,
+            precioFinal,
+        });
+        /* =========================
+           REEMPLAZAR SERVICIOS
+        ========================= */
+        await citaServicio_1.default.destroy({ where: { citaId: id } });
+        await citaServicio_1.default.bulkCreate(servicios.map((s) => ({
+            citaId: id,
+            servicioId: s.servicioId,
+            precio: Number(s.precio),
+            duracion: Number(s.duracion),
+        })));
+        /* =========================
+           RESPUESTA
+        ========================= */
         const updated = await citas_1.default.findByPk(id, {
             include: [
                 {
@@ -291,11 +321,16 @@ const updateCita = async (req, res) => {
                 },
             ],
         });
-        return res.json({ message: "Cita actualizada", cita: updated });
+        return res.json({
+            message: "Cita actualizada correctamente",
+            cita: updated,
+        });
     }
-    catch (err) {
-        console.error("❌ Error UPDATE CITA:", err);
-        res.status(500).json({ error: err instanceof Error ? err.message : "Error desconocido" });
+    catch (error) {
+        console.error("❌ ERROR updateCita:", error);
+        return res.status(500).json({
+            error: error instanceof Error ? error.message : "Error interno",
+        });
     }
 };
 exports.updateCita = updateCita;

@@ -325,6 +325,7 @@ export const createCita = async (req: Request, res: Response) => {
 export const updateCita = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
+
     const {
       nombreCliente,
       emailCliente,
@@ -332,51 +333,84 @@ export const updateCita = async (req: Request, res: Response) => {
       fechaHora,
       notas,
       precioFinal,
-      duracionMinutos,
-      servicios = []
+      servicios = [],
     } = req.body;
 
+    /* =========================
+       BUSCAR CITA
+    ========================= */
     const cita = await Cita.findByPk(id, {
       include: [{ model: CitaServicio, as: "servicios" }],
     });
 
-    if (!cita) return res.status(404).json({ message: "Cita no encontrada" });
+    if (!cita) {
+      return res.status(404).json({ message: "Cita no encontrada" });
+    }
 
+    /* =========================
+       FECHA INICIO
+    ========================= */
     const inicio = new Date(fechaHora);
     if (isNaN(inicio.getTime())) {
       return res.status(400).json({ message: "fechaHora inválida" });
     }
 
+    /* =========================
+       VALIDAR SERVICIOS
+    ========================= */
+    if (!Array.isArray(servicios) || servicios.length === 0) {
+      return res.status(400).json({
+        message: "La cita debe tener al menos un servicio",
+      });
+    }
+
+    /* =========================
+       DURACIÓN REAL (ÚNICA FUENTE)
+    ========================= */
     const totalDuracion = servicios.reduce(
       (sum: number, s: any) => sum + Number(s.duracion),
       0
     );
 
+    if (totalDuracion <= 0) {
+      return res.status(400).json({
+        message: "Duración total inválida",
+      });
+    }
+
     const fin = addMinutes(inicio, totalDuracion);
 
-
+    /* =========================
+       UPDATE CITA
+    ========================= */
     await cita.update({
-      nombreCliente,
-      emailCliente,
-      whatsappCliente,
+      nombreCliente: nombreCliente?.trim() || null,
+      emailCliente: emailCliente?.trim() || null,
+      whatsappCliente: whatsappCliente?.trim() || null,
       fechaHora: inicio,
       fechaFin: fin,
-      notas,
+      duracionMinutos: totalDuracion, // 🔒 clave
+      notas: notas ?? null,
       precioFinal,
-      duracionMinutos: Number(duracionMinutos),
     });
 
+    /* =========================
+       REEMPLAZAR SERVICIOS
+    ========================= */
     await CitaServicio.destroy({ where: { citaId: id } });
 
-    for (const s of servicios) {
-      await CitaServicio.create({
+    await CitaServicio.bulkCreate(
+      servicios.map((s: any) => ({
         citaId: id,
         servicioId: s.servicioId,
         precio: Number(s.precio),
         duracion: Number(s.duracion),
-      });
-    }
+      }))
+    );
 
+    /* =========================
+       RESPUESTA
+    ========================= */
     const updated = await Cita.findByPk(id, {
       include: [
         {
@@ -387,13 +421,17 @@ export const updateCita = async (req: Request, res: Response) => {
       ],
     });
 
-    return res.json({ message: "Cita actualizada", cita: updated });
-  } catch (err) {
-    console.error("❌ Error UPDATE CITA:", err);
-    res.status(500).json({ error: err instanceof Error ? err.message : "Error desconocido" });
+    return res.json({
+      message: "Cita actualizada correctamente",
+      cita: updated,
+    });
+  } catch (error) {
+    console.error("❌ ERROR updateCita:", error);
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : "Error interno",
+    });
   }
 };
-
 
 export const getCitas = async (req: Request, res: Response) => {
   try {
