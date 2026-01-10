@@ -229,7 +229,7 @@ const createCita = async (req, res) => {
 exports.createCita = createCita;
 const updateCita = async (req, res) => {
     try {
-        const { id } = req.params;
+        const id = req.params.id;
         const { nombreCliente, emailCliente, whatsappCliente, fechaHora, notas, precioFinal, duracionMinutos, servicios = [] } = req.body;
         const cita = await citas_1.default.findByPk(id, {
             include: [{ model: citaServicio_1.default, as: "servicios" }],
@@ -342,7 +342,8 @@ const getCitas = async (req, res) => {
 exports.getCitas = getCitas;
 const getCitaById = async (req, res) => {
     try {
-        const cita = await citas_1.default.findByPk(req.params.id, {
+        const id = req.params.id;
+        const cita = await citas_1.default.findByPk(id, {
             include: [
                 {
                     model: citaServicio_1.default,

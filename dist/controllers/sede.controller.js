@@ -14,7 +14,8 @@ const getSedes = async (req, res) => {
 exports.getSedes = getSedes;
 const getSedeById = async (req, res) => {
     try {
-        const sede = await models_1.Sede.findByPk(req.params.id);
+        const id = req.params.id;
+        const sede = await models_1.Sede.findByPk(id);
         if (!sede)
             return res.status(404).json({ error: "Sede no encontrada" });
         res.json(sede);
@@ -36,7 +37,8 @@ const createSede = async (req, res) => {
 exports.createSede = createSede;
 const updateSede = async (req, res) => {
     try {
-        const sede = await models_1.Sede.findByPk(req.params.id);
+        const id = req.params.id;
+        const sede = await models_1.Sede.findByPk(id);
         if (!sede)
             return res.status(404).json({ error: "Sede no encontrada" });
         await sede.update(req.body);
@@ -49,7 +51,8 @@ const updateSede = async (req, res) => {
 exports.updateSede = updateSede;
 const deleteSede = async (req, res) => {
     try {
-        const sede = await models_1.Sede.findByPk(req.params.id);
+        const id = req.params.id;
+        const sede = await models_1.Sede.findByPk(id);
         if (!sede)
             return res.status(404).json({ error: "Sede no encontrada" });
         await sede.destroy();

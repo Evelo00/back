@@ -59,7 +59,7 @@ const crearUsuario = async (req, res) => {
 };
 exports.crearUsuario = crearUsuario;
 const actualizarUsuario = async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id;
     const { rol, activo, nombre, apellido, telefono } = req.body;
     try {
         const usuario = await user_1.User.findByPk(id);

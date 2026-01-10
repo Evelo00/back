@@ -17,7 +17,8 @@ const getVentas = async (req, res) => {
 exports.getVentas = getVentas;
 const getVentaById = async (req, res) => {
     try {
-        const venta = await venta_1.default.findByPk(req.params.id);
+        const id = req.params.id;
+        const venta = await venta_1.default.findByPk(id);
         if (!venta)
             return res.status(404).json({ error: "Venta no encontrada" });
         res.json(venta);
@@ -39,7 +40,8 @@ const createVenta = async (req, res) => {
 exports.createVenta = createVenta;
 const updateVenta = async (req, res) => {
     try {
-        const venta = await venta_1.default.findByPk(req.params.id);
+        const id = req.params.id;
+        const venta = await venta_1.default.findByPk(id);
         if (!venta)
             return res.status(404).json({ error: "Venta no encontrada" });
         await venta.update(req.body);
@@ -52,7 +54,8 @@ const updateVenta = async (req, res) => {
 exports.updateVenta = updateVenta;
 const deleteVenta = async (req, res) => {
     try {
-        const venta = await venta_1.default.findByPk(req.params.id);
+        const id = req.params.id;
+        const venta = await venta_1.default.findByPk(id);
         if (!venta)
             return res.status(404).json({ error: "Venta no encontrada" });
         await venta.destroy();

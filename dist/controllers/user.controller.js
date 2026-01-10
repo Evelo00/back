@@ -33,7 +33,8 @@ const getUsers = async (req, res) => {
 exports.getUsers = getUsers;
 const getUserById = async (req, res) => {
     try {
-        const user = await models_1.User.findByPk(req.params.id, {
+        const id = req.params.id;
+        const user = await models_1.User.findByPk(id, {
             attributes: { exclude: ["passwordHash"] },
         });
         if (!user)
@@ -81,7 +82,8 @@ const createUser = async (req, res) => {
 exports.createUser = createUser;
 const updateUser = async (req, res) => {
     try {
-        const user = await models_1.User.findByPk(req.params.id);
+        const id = req.params.id;
+        const user = await models_1.User.findByPk(id);
         if (!user)
             return res.status(404).json({ message: "Usuario no encontrado" });
         if (req.body.password) {
@@ -99,7 +101,8 @@ const updateUser = async (req, res) => {
 exports.updateUser = updateUser;
 const deleteUser = async (req, res) => {
     try {
-        const user = await models_1.User.findByPk(req.params.id);
+        const id = req.params.id;
+        const user = await models_1.User.findByPk(id);
         if (!user)
             return res.status(404).json({ message: "Usuario no encontrado" });
         await user.destroy();

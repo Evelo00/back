@@ -294,7 +294,7 @@ export const createCita = async (req: Request, res: Response) => {
 
 export const updateCita = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const {
       nombreCliente,
       emailCliente,
@@ -437,7 +437,9 @@ export const getCitas = async (req: Request, res: Response) => {
 
 export const getCitaById = async (req: Request, res: Response) => {
   try {
-    const cita = await Cita.findByPk(req.params.id, {
+    const id = req.params.id as string;
+
+    const cita = await Cita.findByPk(id, {
       include: [
         {
           model: CitaServicio,
@@ -462,10 +464,9 @@ export const getCitaById = async (req: Request, res: Response) => {
 
 export const deleteCita = async (req: Request, res: Response) => {
   try {
-    const id = req.params.id;
+    const id = req.params.id as string;
 
     await CitaServicio.destroy({ where: { citaId: id } });
-
     const cita = await Cita.findByPk(id);
     if (!cita)
       return res.status(404).json({ message: "Cita no encontrada" });

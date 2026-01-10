@@ -12,7 +12,8 @@ export const getSedes = async (req: Request, res: Response) => {
 
 export const getSedeById = async (req: Request, res: Response) => {
   try {
-    const sede = await Sede.findByPk(req.params.id);
+    const id = req.params.id as string;
+    const sede = await Sede.findByPk(id);
     if (!sede) return res.status(404).json({ error: "Sede no encontrada" });
     res.json(sede);
   } catch {
@@ -31,7 +32,8 @@ export const createSede = async (req: Request, res: Response) => {
 
 export const updateSede = async (req: Request, res: Response) => {
   try {
-    const sede = await Sede.findByPk(req.params.id);
+    const id = req.params.id as string;
+    const sede = await Sede.findByPk(id);
     if (!sede) return res.status(404).json({ error: "Sede no encontrada" });
     await sede.update(req.body);
     res.json(sede);
@@ -42,7 +44,8 @@ export const updateSede = async (req: Request, res: Response) => {
 
 export const deleteSede = async (req: Request, res: Response) => {
   try {
-    const sede = await Sede.findByPk(req.params.id);
+    const id = req.params.id as string;
+    const sede = await Sede.findByPk(id);
     if (!sede) return res.status(404).json({ error: "Sede no encontrada" });
     await sede.destroy();
     res.json({ message: "Sede eliminada correctamente" });

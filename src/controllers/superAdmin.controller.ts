@@ -63,7 +63,7 @@ export const crearUsuario = async (req: Request, res: Response) => {
 
 
 export const actualizarUsuario = async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { rol, activo, nombre, apellido, telefono } = req.body;
 
   try {
