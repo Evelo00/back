@@ -33,51 +33,78 @@ const generateTimeSlots = (start: string, end: string, interval = 15): string[] 
 
 export const getAvailability = async (req: Request, res: Response) => {
   try {
-    const { date, serviceDuration, barberoId, sedeId } = req.query;
+    const { date, barberoId, sedeId, serviceDuration } = req.query;
+    const duration = Number(serviceDuration);
 
-    if (!date || !serviceDuration || !barberoId || !sedeId) {
+    if (!duration || isNaN(duration) || duration <= 0) {
+      return res.status(400).json({ message: "Duración inválida" });
+    }
+
+    if (!date || !barberoId || !sedeId) {
       return res.status(400).json({ message: "Faltan parámetros requeridos" });
     }
 
     const dateStr = String(date);
-    const dateObj = new Date(`${dateStr}T00:00:00`);
 
-    const duration = parseInt(serviceDuration as string, 10);
-
-    const startUTC = new Date(`${dateStr}T00:00:00Z`);
-    const endUTC = new Date(`${dateStr}T23:59:59Z`);
+    const dayStartUTC = new Date(`${dateStr}T00:00:00-05:00`);
+    const dayEndUTC = new Date(`${dateStr}T23:59:59-05:00`);
 
     const citas = await Cita.findAll({
       where: {
         barberoId: String(barberoId),
         sedeId: String(sedeId),
-        fechaHora: { [Op.between]: [startUTC, endUTC] },
+        estado: { [Op.in]: ["confirmada", "pendiente", "bloqueo"] },
+        // 👇 clave: SOLO citas que cruzan el día
+        fechaHora: { [Op.lt]: dayEndUTC },
+        fechaFin: { [Op.gt]: dayStartUTC },
       },
     });
 
-    const { start, lastSlot, realEnd } = getDaySchedule(dateObj);
+    const bloqueoDiaCompleto = citas.some(
+      (cita) =>
+        cita.servicioId === BLOQUEO_SERVICE_ID &&
+        cita.fechaHora <= dayStartUTC &&
+        cita.fechaFin >= dayEndUTC
+    );
+
+    if (bloqueoDiaCompleto) {
+      return res.json({ availableSlots: [] });
+    }
+
+    const dayBogota = new Date(`${dateStr}T00:00:00-05:00`);
+    const { start, lastSlot, realEnd } = getDaySchedule(dayBogota);
     const allSlots = generateTimeSlots(start, lastSlot);
+
+    const cierreUTC = new Date(`${dateStr}T${realEnd}:00-05:00`);
 
     const availableSlots: string[] = [];
 
     for (const slot of allSlots) {
-      const slotLocal = new Date(`${dateStr}T${slot}:00`);
-      const slotStartUTC = new Date(`${dateStr}T${slot}:00Z`);
+      const slotStartUTC = new Date(`${dateStr}T${slot}:00-05:00`);
+      // ⛔ No permitir iniciar después del cierre
+      if (slotStartUTC >= cierreUTC) continue;
+
       const slotEndUTC = addMinutes(slotStartUTC, duration);
-      const cierreUTC = new Date(`${dateStr}T${realEnd}:00Z`);
-      const [endH, endM] = realEnd.split(":").map(Number);
-      const cierreLocal = new Date(`${dateStr}T${realEnd}:00`);
-
-      if (slotEndUTC > cierreUTC) continue;
-
 
       const hasConflict = citas.some((cita) => {
-        const inicio = new Date(cita.fechaHora);
-        const fin = cita.fechaFin;
-        return slotStartUTC < fin && slotEndUTC > inicio;
+        const inicioReal = cita.fechaHora < dayStartUTC
+          ? dayStartUTC
+          : cita.fechaHora;
+
+        const finReal = cita.fechaFin > dayEndUTC
+          ? dayEndUTC
+          : cita.fechaFin;
+
+        // 🔥 comparación REAL de intervalos
+        return (
+          slotStartUTC < finReal &&
+          slotEndUTC > inicioReal
+        );
       });
 
-      if (!hasConflict) availableSlots.push(slot);
+      if (!hasConflict) {
+        availableSlots.push(slot);
+      }
     }
 
     return res.json({ availableSlots });
@@ -176,19 +203,19 @@ export const createCita = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Faltan campos requeridos" });
     }
 
-    const inicio = new Date(fechaHora);
+    const inicio = new Date(fechaHora); // YA viene con -05:00
     if (isNaN(inicio.getTime())) {
       return res.status(400).json({ message: "fechaHora inválida" });
     }
 
-    const clienteIdFinal =
-      typeof clienteId === "string" && clienteId.trim() !== ""
-        ? clienteId
-        : null;
+    // si hay req.user → admin
+    const isAdmin = Boolean(req.user && req.user.rol === "admin");
 
-    const isBloqueo = servicioId === BLOQUEO_SERVICE_ID;
+    if (servicioId === BLOQUEO_SERVICE_ID) {
+      if (!isAdmin) {
+        return res.status(403).json({ message: "No autorizado" });
+      }
 
-    if (isBloqueo) {
       if (!fechaFin) {
         return res.status(400).json({ message: "fechaFin requerida para bloqueo" });
       }
@@ -215,9 +242,9 @@ export const createCita = async (req: Request, res: Response) => {
     }
 
     if (!Array.isArray(servicios) || servicios.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "Debe seleccionar al menos un servicio." });
+      return res.status(400).json({
+        message: "Debe seleccionar al menos un servicio.",
+      });
     }
 
     const foundServices = await Service.findAll({
@@ -243,13 +270,16 @@ export const createCita = async (req: Request, res: Response) => {
     const conflict = await Cita.findOne({
       where: {
         barberoId,
+        sedeId,
         fechaHora: { [Op.lt]: fin },
         fechaFin: { [Op.gt]: inicio },
         estado: { [Op.in]: ["pendiente", "confirmada", "bloqueo"] },
       },
     });
 
-    if (conflict) {
+    // ❌ Cliente: nunca puede sobreescribir
+    // ✅ Admin: sí puede
+    if (conflict && !isAdmin) {
       return res.status(409).json({
         message: "El barbero ya tiene una cita o bloqueo en ese horario",
       });
@@ -257,9 +287,8 @@ export const createCita = async (req: Request, res: Response) => {
 
     const nuevaCita = await Cita.create({
       sedeId,
-      clienteId: clienteIdFinal,
+      clienteId: isAdmin ? clienteId ?? null : null,
       barberoId,
-      servicioId: null,
       fechaHora: inicio,
       fechaFin: fin,
       duracionMinutos: totalDuracion,
@@ -268,9 +297,11 @@ export const createCita = async (req: Request, res: Response) => {
       nombreCliente: nombreCliente?.trim() || null,
       emailCliente: emailCliente?.trim() || null,
       whatsappCliente: whatsappCliente?.trim() || null,
-      notas: notas ?? null,
+      notas:
+        conflict && isAdmin
+          ? `⚠️ Cita forzada por admin sobre cita ${conflict.id}`
+          : notas ?? null,
     });
-
 
     await CitaServicio.bulkCreate(
       foundServices.map((s) => ({
@@ -284,7 +315,6 @@ export const createCita = async (req: Request, res: Response) => {
     return res.status(201).json({
       message: "Cita creada correctamente",
       cita: nuevaCita,
-      servicios: foundServices,
     });
   } catch (error: any) {
     console.error("❌ ERROR createCita:", error);

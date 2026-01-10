@@ -1,6 +1,6 @@
 export type DaySchedule = {
   start: string;      // apertura
-  lastSlot: string;  // último slot cliente
+  lastSlot: string;  // último slot donde puede INICIAR una cita
   realEnd: string;   // cierre real
 };
 
@@ -11,7 +11,7 @@ export function getDaySchedule(date: Date): DaySchedule {
   if (day === 0) {
     return {
       start: "09:00",
-      lastSlot: "18:30",
+      lastSlot: "18:45",
       realEnd: "19:00",
     };
   }
@@ -19,7 +19,7 @@ export function getDaySchedule(date: Date): DaySchedule {
   // Lunes a sábado: 8 a 8
   return {
     start: "08:00",
-    lastSlot: "19:30",
+    lastSlot: "19:45",
     realEnd: "20:00",
   };
 }

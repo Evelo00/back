@@ -7,14 +7,14 @@ function getDaySchedule(date) {
     if (day === 0) {
         return {
             start: "09:00",
-            lastSlot: "18:30",
+            lastSlot: "18:45",
             realEnd: "19:00",
         };
     }
     // Lunes a sábado: 8 a 8
     return {
         start: "08:00",
-        lastSlot: "19:30",
+        lastSlot: "19:45",
         realEnd: "20:00",
     };
 }

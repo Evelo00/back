@@ -26,41 +26,58 @@ const generateTimeSlots = (start, end, interval = 15) => {
 };
 const getAvailability = async (req, res) => {
     try {
-        const { date, serviceDuration, barberoId, sedeId } = req.query;
-        if (!date || !serviceDuration || !barberoId || !sedeId) {
+        const { date, barberoId, sedeId, serviceDuration } = req.query;
+        const duration = Number(serviceDuration);
+        if (!duration || isNaN(duration) || duration <= 0) {
+            return res.status(400).json({ message: "Duración inválida" });
+        }
+        if (!date || !barberoId || !sedeId) {
             return res.status(400).json({ message: "Faltan parámetros requeridos" });
         }
         const dateStr = String(date);
-        const dateObj = new Date(`${dateStr}T00:00:00`);
-        const duration = parseInt(serviceDuration, 10);
-        const startUTC = new Date(`${dateStr}T00:00:00Z`);
-        const endUTC = new Date(`${dateStr}T23:59:59Z`);
+        const dayStartUTC = new Date(`${dateStr}T00:00:00-05:00`);
+        const dayEndUTC = new Date(`${dateStr}T23:59:59-05:00`);
         const citas = await citas_1.default.findAll({
             where: {
                 barberoId: String(barberoId),
                 sedeId: String(sedeId),
-                fechaHora: { [sequelize_1.Op.between]: [startUTC, endUTC] },
+                estado: { [sequelize_1.Op.in]: ["confirmada", "pendiente", "bloqueo"] },
+                // 👇 clave: SOLO citas que cruzan el día
+                fechaHora: { [sequelize_1.Op.lt]: dayEndUTC },
+                fechaFin: { [sequelize_1.Op.gt]: dayStartUTC },
             },
         });
-        const { start, lastSlot, realEnd } = (0, schedule_1.getDaySchedule)(dateObj);
+        const bloqueoDiaCompleto = citas.some((cita) => cita.servicioId === BLOQUEO_SERVICE_ID &&
+            cita.fechaHora <= dayStartUTC &&
+            cita.fechaFin >= dayEndUTC);
+        if (bloqueoDiaCompleto) {
+            return res.json({ availableSlots: [] });
+        }
+        const dayBogota = new Date(`${dateStr}T00:00:00-05:00`);
+        const { start, lastSlot, realEnd } = (0, schedule_1.getDaySchedule)(dayBogota);
         const allSlots = generateTimeSlots(start, lastSlot);
+        const cierreUTC = new Date(`${dateStr}T${realEnd}:00-05:00`);
         const availableSlots = [];
         for (const slot of allSlots) {
-            const slotLocal = new Date(`${dateStr}T${slot}:00`);
-            const slotStartUTC = new Date(`${dateStr}T${slot}:00Z`);
-            const slotEndUTC = (0, date_fns_1.addMinutes)(slotStartUTC, duration);
-            const cierreUTC = new Date(`${dateStr}T${realEnd}:00Z`);
-            const [endH, endM] = realEnd.split(":").map(Number);
-            const cierreLocal = new Date(`${dateStr}T${realEnd}:00`);
-            if (slotEndUTC > cierreUTC)
+            const slotStartUTC = new Date(`${dateStr}T${slot}:00-05:00`);
+            // ⛔ No permitir iniciar después del cierre
+            if (slotStartUTC >= cierreUTC)
                 continue;
+            const slotEndUTC = (0, date_fns_1.addMinutes)(slotStartUTC, duration);
             const hasConflict = citas.some((cita) => {
-                const inicio = new Date(cita.fechaHora);
-                const fin = cita.fechaFin;
-                return slotStartUTC < fin && slotEndUTC > inicio;
+                const inicioReal = cita.fechaHora < dayStartUTC
+                    ? dayStartUTC
+                    : cita.fechaHora;
+                const finReal = cita.fechaFin > dayEndUTC
+                    ? dayEndUTC
+                    : cita.fechaFin;
+                // 🔥 comparación REAL de intervalos
+                return (slotStartUTC < finReal &&
+                    slotEndUTC > inicioReal);
             });
-            if (!hasConflict)
+            if (!hasConflict) {
                 availableSlots.push(slot);
+            }
         }
         return res.json({ availableSlots });
     }
@@ -137,15 +154,16 @@ const createCita = async (req, res) => {
         if (!barberoId || !fechaHora) {
             return res.status(400).json({ message: "Faltan campos requeridos" });
         }
-        const inicio = new Date(fechaHora);
+        const inicio = new Date(fechaHora); // YA viene con -05:00
         if (isNaN(inicio.getTime())) {
             return res.status(400).json({ message: "fechaHora inválida" });
         }
-        const clienteIdFinal = typeof clienteId === "string" && clienteId.trim() !== ""
-            ? clienteId
-            : null;
-        const isBloqueo = servicioId === BLOQUEO_SERVICE_ID;
-        if (isBloqueo) {
+        // si hay req.user → admin
+        const isAdmin = Boolean(req.user && req.user.rol === "admin");
+        if (servicioId === BLOQUEO_SERVICE_ID) {
+            if (!isAdmin) {
+                return res.status(403).json({ message: "No autorizado" });
+            }
             if (!fechaFin) {
                 return res.status(400).json({ message: "fechaFin requerida para bloqueo" });
             }
@@ -168,9 +186,9 @@ const createCita = async (req, res) => {
             return res.status(201).json(bloqueo);
         }
         if (!Array.isArray(servicios) || servicios.length === 0) {
-            return res
-                .status(400)
-                .json({ message: "Debe seleccionar al menos un servicio." });
+            return res.status(400).json({
+                message: "Debe seleccionar al menos un servicio.",
+            });
         }
         const foundServices = await service_1.default.findAll({
             where: { id: servicios },
@@ -184,21 +202,23 @@ const createCita = async (req, res) => {
         const conflict = await citas_1.default.findOne({
             where: {
                 barberoId,
+                sedeId,
                 fechaHora: { [sequelize_1.Op.lt]: fin },
                 fechaFin: { [sequelize_1.Op.gt]: inicio },
                 estado: { [sequelize_1.Op.in]: ["pendiente", "confirmada", "bloqueo"] },
             },
         });
-        if (conflict) {
+        // ❌ Cliente: nunca puede sobreescribir
+        // ✅ Admin: sí puede
+        if (conflict && !isAdmin) {
             return res.status(409).json({
                 message: "El barbero ya tiene una cita o bloqueo en ese horario",
             });
         }
         const nuevaCita = await citas_1.default.create({
             sedeId,
-            clienteId: clienteIdFinal,
+            clienteId: isAdmin ? clienteId ?? null : null,
             barberoId,
-            servicioId: null,
             fechaHora: inicio,
             fechaFin: fin,
             duracionMinutos: totalDuracion,
@@ -207,7 +227,9 @@ const createCita = async (req, res) => {
             nombreCliente: nombreCliente?.trim() || null,
             emailCliente: emailCliente?.trim() || null,
             whatsappCliente: whatsappCliente?.trim() || null,
-            notas: notas ?? null,
+            notas: conflict && isAdmin
+                ? `⚠️ Cita forzada por admin sobre cita ${conflict.id}`
+                : notas ?? null,
         });
         await citaServicio_1.default.bulkCreate(foundServices.map((s) => ({
             citaId: nuevaCita.id,
@@ -218,7 +240,6 @@ const createCita = async (req, res) => {
         return res.status(201).json({
             message: "Cita creada correctamente",
             cita: nuevaCita,
-            servicios: foundServices,
         });
     }
     catch (error) {
