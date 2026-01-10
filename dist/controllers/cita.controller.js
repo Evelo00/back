@@ -308,6 +308,8 @@ const getCitas = async (req, res) => {
                 "sedeId",
                 "duracionMinutos",
                 "nombreCliente",
+                "emailCliente",
+                "whatsappCliente",
             ],
             where: {
                 fechaHora: {

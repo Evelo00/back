@@ -403,6 +403,8 @@ export const getCitas = async (req: Request, res: Response) => {
         "sedeId",
         "duracionMinutos",
         "nombreCliente",
+        "emailCliente",
+        "whatsappCliente",
       ],
       where: {
         fechaHora: {
