@@ -159,7 +159,7 @@ const createCita = async (req, res) => {
             return res.status(400).json({ message: "fechaHora inválida" });
         }
         // si hay req.user → admin
-        const isAdmin = Boolean(req.user && req.user.rol === "admin");
+        const isAdmin = Boolean(req.user && ["admin", "superadmin"].includes(req.user.rol));
         if (servicioId === BLOQUEO_SERVICE_ID) {
             if (!isAdmin) {
                 return res.status(403).json({ message: "No autorizado" });

@@ -4,13 +4,24 @@ const express_1 = require("express");
 const cita_controller_1 = require("../controllers/cita.controller");
 const auth_middleware_1 = require("../middlewares/auth.middleware");
 const router = (0, express_1.Router)();
+/* =========================
+   🔓 RUTAS PÚBLICAS
+========================= */
 router.get("/availability", cita_controller_1.getAvailability);
 router.get("/clientes/buscar", cita_controller_1.buscarClientes);
+// cliente normal
 router.post("/public", cita_controller_1.createCita);
-router.post("/", cita_controller_1.createCita);
-router.get("/", cita_controller_1.getCitas);
+/* =========================
+   🔒 RUTAS ADMIN
+========================= */
+// crear cita / bloqueo
+router.post("/", auth_middleware_1.authMiddleware, cita_controller_1.createCita);
+// listar citas
+router.get("/", auth_middleware_1.authMiddleware, cita_controller_1.getCitas);
+// obtener una cita
 router.get("/:id", auth_middleware_1.authMiddleware, cita_controller_1.getCitaById);
+// actualizar cita
 router.put("/:id", auth_middleware_1.authMiddleware, cita_controller_1.updateCita);
-router.patch("/:id", cita_controller_1.updateCita);
-router.delete("/:id", cita_controller_1.deleteCita);
+// eliminar cita
+router.delete("/:id", auth_middleware_1.authMiddleware, cita_controller_1.deleteCita);
 exports.default = router;

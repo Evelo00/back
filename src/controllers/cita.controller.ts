@@ -209,7 +209,9 @@ export const createCita = async (req: Request, res: Response) => {
     }
 
     // si hay req.user → admin
-    const isAdmin = Boolean(req.user && req.user.rol === "admin");
+    const isAdmin = Boolean(
+      req.user && ["admin", "superadmin"].includes(req.user.rol)
+    );
 
     if (servicioId === BLOQUEO_SERVICE_ID) {
       if (!isAdmin) {
