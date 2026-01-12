@@ -85,6 +85,7 @@ export const getAvailability = async (req: Request, res: Response) => {
       if (slotStartUTC >= cierreUTC) continue;
 
       const slotEndUTC = addMinutes(slotStartUTC, duration);
+      if (slotEndUTC > cierreUTC) continue;
 
       const hasConflict = citas.some((cita) => {
         const inicioReal = cita.fechaHora < dayStartUTC
@@ -338,9 +339,6 @@ export const updateCita = async (req: Request, res: Response) => {
       servicios = [],
     } = req.body;
 
-    /* =========================
-       BUSCAR CITA
-    ========================= */
     const cita = await Cita.findByPk(id, {
       include: [{ model: CitaServicio, as: "servicios" }],
     });
@@ -349,26 +347,17 @@ export const updateCita = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Cita no encontrada" });
     }
 
-    /* =========================
-       FECHA INICIO
-    ========================= */
     const inicio = new Date(fechaHora);
     if (isNaN(inicio.getTime())) {
       return res.status(400).json({ message: "fechaHora inválida" });
     }
 
-    /* =========================
-       VALIDAR SERVICIOS
-    ========================= */
     if (!Array.isArray(servicios) || servicios.length === 0) {
       return res.status(400).json({
         message: "La cita debe tener al menos un servicio",
       });
     }
 
-    /* =========================
-       DURACIÓN REAL (ÚNICA FUENTE)
-    ========================= */
     const totalDuracion = servicios.reduce(
       (sum: number, s: any) => sum + Number(s.duracion),
       0
@@ -382,9 +371,6 @@ export const updateCita = async (req: Request, res: Response) => {
 
     const fin = addMinutes(inicio, totalDuracion);
 
-    /* =========================
-       UPDATE CITA
-    ========================= */
     await cita.update({
       nombreCliente: nombreCliente?.trim() || null,
       emailCliente: emailCliente?.trim() || null,
@@ -396,9 +382,6 @@ export const updateCita = async (req: Request, res: Response) => {
       precioFinal,
     });
 
-    /* =========================
-       REEMPLAZAR SERVICIOS
-    ========================= */
     await CitaServicio.destroy({ where: { citaId: id } });
 
     await CitaServicio.bulkCreate(
@@ -410,9 +393,6 @@ export const updateCita = async (req: Request, res: Response) => {
       }))
     );
 
-    /* =========================
-       RESPUESTA
-    ========================= */
     const updated = await Cita.findByPk(id, {
       include: [
         {

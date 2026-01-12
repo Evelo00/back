@@ -64,6 +64,8 @@ const getAvailability = async (req, res) => {
             if (slotStartUTC >= cierreUTC)
                 continue;
             const slotEndUTC = (0, date_fns_1.addMinutes)(slotStartUTC, duration);
+            if (slotEndUTC > cierreUTC)
+                continue;
             const hasConflict = citas.some((cita) => {
                 const inicioReal = cita.fechaHora < dayStartUTC
                     ? dayStartUTC
@@ -252,33 +254,21 @@ const updateCita = async (req, res) => {
     try {
         const id = req.params.id;
         const { nombreCliente, emailCliente, whatsappCliente, fechaHora, notas, precioFinal, servicios = [], } = req.body;
-        /* =========================
-           BUSCAR CITA
-        ========================= */
         const cita = await citas_1.default.findByPk(id, {
             include: [{ model: citaServicio_1.default, as: "servicios" }],
         });
         if (!cita) {
             return res.status(404).json({ message: "Cita no encontrada" });
         }
-        /* =========================
-           FECHA INICIO
-        ========================= */
         const inicio = new Date(fechaHora);
         if (isNaN(inicio.getTime())) {
             return res.status(400).json({ message: "fechaHora inválida" });
         }
-        /* =========================
-           VALIDAR SERVICIOS
-        ========================= */
         if (!Array.isArray(servicios) || servicios.length === 0) {
             return res.status(400).json({
                 message: "La cita debe tener al menos un servicio",
             });
         }
-        /* =========================
-           DURACIÓN REAL (ÚNICA FUENTE)
-        ========================= */
         const totalDuracion = servicios.reduce((sum, s) => sum + Number(s.duracion), 0);
         if (totalDuracion <= 0) {
             return res.status(400).json({
@@ -286,9 +276,6 @@ const updateCita = async (req, res) => {
             });
         }
         const fin = (0, date_fns_1.addMinutes)(inicio, totalDuracion);
-        /* =========================
-           UPDATE CITA
-        ========================= */
         await cita.update({
             nombreCliente: nombreCliente?.trim() || null,
             emailCliente: emailCliente?.trim() || null,
@@ -299,9 +286,6 @@ const updateCita = async (req, res) => {
             notas: notas ?? null,
             precioFinal,
         });
-        /* =========================
-           REEMPLAZAR SERVICIOS
-        ========================= */
         await citaServicio_1.default.destroy({ where: { citaId: id } });
         await citaServicio_1.default.bulkCreate(servicios.map((s) => ({
             citaId: id,
@@ -309,9 +293,6 @@ const updateCita = async (req, res) => {
             precio: Number(s.precio),
             duracion: Number(s.duracion),
         })));
-        /* =========================
-           RESPUESTA
-        ========================= */
         const updated = await citas_1.default.findByPk(id, {
             include: [
                 {
