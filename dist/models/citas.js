@@ -75,6 +75,12 @@ Cita.init({
         allowNull: false,
         field: "sede_id",
     },
+    createFrom: {
+        type: sequelize_1.DataTypes.ENUM("admin", "cliente"),
+        allowNull: false,
+        defaultValue: "cliente",
+        field: "creada_por",
+    },
     createdAt: { type: sequelize_1.DataTypes.DATE, field: "created_at" },
     updatedAt: { type: sequelize_1.DataTypes.DATE, field: "updated_at" },
     deletedAt: { type: sequelize_1.DataTypes.DATE, field: "deleted_at" },

@@ -28,6 +28,7 @@ export class Cita extends Model<
   declare updatedAt: CreationOptional<Date>;
   declare deletedAt: Date | null;
   declare sedeId: string;
+  declare createFrom: "admin" | "cliente";
 }
 
 Cita.init(
@@ -99,6 +100,12 @@ Cita.init(
       type: DataTypes.UUID,
       allowNull: false,
       field: "sede_id",
+    },
+    createFrom: {
+      type: DataTypes.ENUM("admin", "cliente"),
+      allowNull: false,
+      defaultValue: "cliente",
+      field: "creada_por",
     },
     createdAt: { type: DataTypes.DATE, field: "created_at" },
     updatedAt: { type: DataTypes.DATE, field: "updated_at" },

@@ -228,6 +228,7 @@ export const createCita = async (req: Request, res: Response) => {
       const bloqueo = await Cita.create({
         sedeId,
         clienteId: null,
+        createFrom: "admin",
         barberoId,
         servicioId: BLOQUEO_SERVICE_ID,
         fechaHora: inicio,
@@ -292,6 +293,7 @@ export const createCita = async (req: Request, res: Response) => {
       sedeId,
       clienteId: isAdmin ? clienteId ?? null : null,
       barberoId,
+      createFrom: isAdmin ? "admin" : "cliente",
       fechaHora: inicio,
       fechaFin: fin,
       duracionMinutos: totalDuracion,
@@ -337,6 +339,7 @@ export const updateCita = async (req: Request, res: Response) => {
       notas,
       precioFinal,
       servicios = [],
+      barberoId,
     } = req.body;
 
     const cita = await Cita.findByPk(id, {
@@ -368,8 +371,25 @@ export const updateCita = async (req: Request, res: Response) => {
         message: "Duración total inválida",
       });
     }
-
+    const barberoFinal = barberoId ?? cita.barberoId;
     const fin = addMinutes(inicio, totalDuracion);
+
+    const conflict = await Cita.findOne({
+      where: {
+        id: { [Op.ne]: cita.id }, // 👈 excluir esta misma cita
+        barberoId: barberoFinal,
+        sedeId: cita.sedeId,
+        fechaHora: { [Op.lt]: fin },
+        fechaFin: { [Op.gt]: inicio },
+        estado: { [Op.in]: ["pendiente", "confirmada", "bloqueo"] },
+      },
+    });
+
+    if (conflict) {
+      return res.status(409).json({
+        message: "El barbero seleccionado ya tiene una cita en ese horario",
+      });
+    }
 
     await cita.update({
       nombreCliente: nombreCliente?.trim() || null,
@@ -380,8 +400,9 @@ export const updateCita = async (req: Request, res: Response) => {
       duracionMinutos: totalDuracion, // 🔒 clave
       notas: notas ?? null,
       precioFinal,
+      barberoId: barberoFinal,
     });
-
+    await cita.reload();
     await CitaServicio.destroy({ where: { citaId: id } });
 
     await CitaServicio.bulkCreate(
@@ -455,6 +476,7 @@ export const getCitas = async (req: Request, res: Response) => {
         "nombreCliente",
         "emailCliente",
         "whatsappCliente",
+        "createFrom",
       ],
       where: {
         fechaHora: {

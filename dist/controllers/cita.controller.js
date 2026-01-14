@@ -173,6 +173,7 @@ const createCita = async (req, res) => {
             const bloqueo = await citas_1.default.create({
                 sedeId,
                 clienteId: null,
+                createFrom: "admin",
                 barberoId,
                 servicioId: BLOQUEO_SERVICE_ID,
                 fechaHora: inicio,
@@ -221,6 +222,7 @@ const createCita = async (req, res) => {
             sedeId,
             clienteId: isAdmin ? clienteId ?? null : null,
             barberoId,
+            createFrom: isAdmin ? "admin" : "cliente",
             fechaHora: inicio,
             fechaFin: fin,
             duracionMinutos: totalDuracion,
@@ -253,7 +255,7 @@ exports.createCita = createCita;
 const updateCita = async (req, res) => {
     try {
         const id = req.params.id;
-        const { nombreCliente, emailCliente, whatsappCliente, fechaHora, notas, precioFinal, servicios = [], } = req.body;
+        const { nombreCliente, emailCliente, whatsappCliente, fechaHora, notas, precioFinal, servicios = [], barberoId, } = req.body;
         const cita = await citas_1.default.findByPk(id, {
             include: [{ model: citaServicio_1.default, as: "servicios" }],
         });
@@ -275,7 +277,23 @@ const updateCita = async (req, res) => {
                 message: "Duración total inválida",
             });
         }
+        const barberoFinal = barberoId ?? cita.barberoId;
         const fin = (0, date_fns_1.addMinutes)(inicio, totalDuracion);
+        const conflict = await citas_1.default.findOne({
+            where: {
+                id: { [sequelize_1.Op.ne]: cita.id }, // 👈 excluir esta misma cita
+                barberoId: barberoFinal,
+                sedeId: cita.sedeId,
+                fechaHora: { [sequelize_1.Op.lt]: fin },
+                fechaFin: { [sequelize_1.Op.gt]: inicio },
+                estado: { [sequelize_1.Op.in]: ["pendiente", "confirmada", "bloqueo"] },
+            },
+        });
+        if (conflict) {
+            return res.status(409).json({
+                message: "El barbero seleccionado ya tiene una cita en ese horario",
+            });
+        }
         await cita.update({
             nombreCliente: nombreCliente?.trim() || null,
             emailCliente: emailCliente?.trim() || null,
@@ -285,7 +303,9 @@ const updateCita = async (req, res) => {
             duracionMinutos: totalDuracion, // 🔒 clave
             notas: notas ?? null,
             precioFinal,
+            barberoId: barberoFinal,
         });
+        await cita.reload();
         await citaServicio_1.default.destroy({ where: { citaId: id } });
         await citaServicio_1.default.bulkCreate(servicios.map((s) => ({
             citaId: id,
@@ -347,6 +367,7 @@ const getCitas = async (req, res) => {
                 "nombreCliente",
                 "emailCliente",
                 "whatsappCliente",
+                "createFrom",
             ],
             where: {
                 fechaHora: {
