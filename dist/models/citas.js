@@ -81,6 +81,17 @@ Cita.init({
         defaultValue: "cliente",
         field: "creada_por",
     },
+    recordatorioEnviado: {
+        type: sequelize_1.DataTypes.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
+        field: 'recordatorio_enviado',
+    },
+    recordatorioEnviadoAt: {
+        type: sequelize_1.DataTypes.DATE,
+        allowNull: true,
+        field: 'recordatorio_enviado_at',
+    },
     createdAt: { type: sequelize_1.DataTypes.DATE, field: "created_at" },
     updatedAt: { type: sequelize_1.DataTypes.DATE, field: "updated_at" },
     deletedAt: { type: sequelize_1.DataTypes.DATE, field: "deleted_at" },

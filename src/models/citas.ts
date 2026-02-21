@@ -29,6 +29,10 @@ export class Cita extends Model<
   declare deletedAt: Date | null;
   declare sedeId: string;
   declare createFrom: "admin" | "cliente";
+  declare recordatorioEnviado: CreationOptional<boolean>;
+  declare recordatorioEnviadoAt: Date | null;
+  declare barberoCita?: any;
+  declare servicios?: any[];
 }
 
 Cita.init(
@@ -106,6 +110,17 @@ Cita.init(
       allowNull: false,
       defaultValue: "cliente",
       field: "creada_por",
+    },
+    recordatorioEnviado: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false,
+      field: 'recordatorio_enviado',
+    },
+    recordatorioEnviadoAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'recordatorio_enviado_at',
     },
     createdAt: { type: DataTypes.DATE, field: "created_at" },
     updatedAt: { type: DataTypes.DATE, field: "updated_at" },

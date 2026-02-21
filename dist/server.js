@@ -11,6 +11,7 @@ const app_1 = __importDefault(require("./app"));
 const database_1 = require("./config/database");
 const socket_1 = require("./websocket/socket");
 const create_superadmin_1 = require("./seed/create-superadmin");
+const reminderCron_1 = require("./service/reminderCron");
 const PORT = Number(process.env.PORT) || 4000;
 const HOST = "0.0.0.0";
 // Crear servidor HTTP
@@ -37,6 +38,7 @@ const startHTTP = () => {
         await (0, create_superadmin_1.createSuperAdmin)();
         console.log("✅ Modelos sincronizados correctamente.");
         startHTTP();
+        (0, reminderCron_1.startReminderCron)();
     }
     catch (syncErr) {
         console.error("❌ Error al sincronizar modelos:", syncErr);

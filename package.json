@@ -7,7 +7,7 @@
     "start": "node dist/server.js",
     "dev": "npm run build && node dist/server.js",
     "dev:watch": "nodemon --watch src --ext ts --exec ts-node --esm src/server.ts",
-    "sync": "npm run build && node dist/syncModels.js",
+    "sync": "ts-node syncModels.ts",
     "sync:dev": "ts-node src/syncModels.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "seed": "node dist/seed/seed.js"
@@ -30,11 +30,16 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
+    "node-cron": "^4.2.1",
     "nodemon": "^3.1.10",
     "pg": "^8.16.3",
     "sequelize": "^6.37.7",
     "socket.io": "^4.8.1",
     "ts-node": "^10.9.2",
+    "twilio": "^5.12.2",
     "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@types/node-cron": "^3.0.11"
   }
 }

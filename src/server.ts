@@ -7,6 +7,7 @@ import app from "./app";
 import { connectDB, sequelize } from "./config/database";
 import { initSocket } from "./websocket/socket";
 import { createSuperAdmin } from "./seed/create-superadmin";
+import { startReminderCron } from "./service/reminderCron";
 
 const PORT = Number(process.env.PORT) || 4000;
 const HOST = "0.0.0.0";
@@ -39,8 +40,10 @@ connectDB()
       await sequelize.sync({ alter: false });
       await createSuperAdmin();
 
-      console.log("✅ Modelos sincronizados correctamente.");
+      console.log("✅ Modelos sincronizados correctamente.");      
       startHTTP();
+
+      startReminderCron();
     } catch (syncErr) {
       console.error("❌ Error al sincronizar modelos:", syncErr);
       startHTTP(); // Mantener servicio arriba
