@@ -25,6 +25,11 @@ Service.init({
         allowNull: false,
         comment: "Duración del servicio en minutos",
     },
+    activo: {
+        type: sequelize_1.DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+    },
 }, {
     sequelize: database_1.sequelize,
     tableName: "servicios",

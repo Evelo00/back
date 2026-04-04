@@ -3,11 +3,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteService = exports.updateService = exports.createService = exports.getServiceById = exports.getServices = void 0;
+exports.deleteService = exports.updateService = exports.createService = exports.getServiceById = exports.getAllServicesAdmin = exports.getServices = void 0;
 const service_1 = __importDefault(require("../models/service"));
 const getServices = async (req, res) => {
     try {
-        const services = await service_1.default.findAll();
+        const services = await service_1.default.findAll({
+            where: { activo: true },
+            order: [["id", "ASC"]],
+        });
         res.json(services);
     }
     catch {
@@ -15,6 +18,18 @@ const getServices = async (req, res) => {
     }
 };
 exports.getServices = getServices;
+const getAllServicesAdmin = async (req, res) => {
+    try {
+        const services = await service_1.default.findAll({
+            order: [["id", "ASC"]],
+        });
+        res.json(services);
+    }
+    catch {
+        res.status(500).json({ error: "Error al obtener servicios" });
+    }
+};
+exports.getAllServicesAdmin = getAllServicesAdmin;
 const getServiceById = async (req, res) => {
     try {
         const id = req.params.id;
