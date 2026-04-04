@@ -3,7 +3,23 @@ import Service from "../models/service";
 
 export const getServices = async (req: Request, res: Response) => {
   try {
-    const services = await Service.findAll();
+    const services = await Service.findAll({
+      where: { activo: true },
+      order: [["id", "ASC"]],
+    });
+
+    res.json(services);
+  } catch {
+    res.status(500).json({ error: "Error al obtener servicios" });
+  }
+};
+
+export const getAllServicesAdmin = async (req: Request, res: Response) => {
+  try {
+    const services = await Service.findAll({
+      order: [["id", "ASC"]],
+    });
+
     res.json(services);
   } catch {
     res.status(500).json({ error: "Error al obtener servicios" });

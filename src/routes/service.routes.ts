@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createService,
   getServices,
+  getAllServicesAdmin,
   getServiceById,
   updateService,
   deleteService,
@@ -11,6 +12,7 @@ const router = Router();
 
 router.post("/", createService);
 router.get("/", getServices);
+router.get("/admin/all", getAllServicesAdmin);
 router.get("/:id", getServiceById);
 router.put("/:id", updateService);
 router.delete("/:id", deleteService);

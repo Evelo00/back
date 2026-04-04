@@ -15,6 +15,7 @@ export class Service extends Model<
   declare nombre: string;
   declare precio: number;
   declare duracion: number;
+  declare activo: CreationOptional<boolean>;
 }
 
 Service.init(
@@ -39,6 +40,11 @@ Service.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       comment: "Duración del servicio en minutos",
+    },
+    activo: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
     },
   },
   {
